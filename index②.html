@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="自然図鑑"/>
+<meta name="theme-color" content="#14532d"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
+<title>自然図鑑</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@700;900&family=Noto+Sans+JP:wght@400;600;700&display=swap');
+
+:root {
+  --green-deep:#14532d; --green-main:#16a34a; --green-light:#dcfce7;
+  --green-pale:#f0fdf4; --radius:14px; --header-h:60px; --tab-h:48px; --season-h:46px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--green-pale);color:#1c1917;min-height:100vh;overflow-x:hidden;}
+
+/* ヘッダー */
+#header{
+  background:linear-gradient(135deg,#14532d,#166534);
+  height:var(--header-h); padding:0 18px;
+  display:flex;align-items:center;gap:12px;
+  box-shadow:0 3px 20px rgba(20,83,45,0.4);
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  padding-top:env(safe-area-inset-top,0px);
+}
+#header .logo{font-family:'Zen Maru Gothic',sans-serif;font-weight:900;font-size:19px;color:white;letter-spacing:1px;}
+#header .sub{font-size:10px;color:#86efac;margin-top:1px;}
+#header .count{margin-left:auto;text-align:right;}
+#header .count .num{font-family:'Zen Maru Gothic',sans-serif;font-size:22px;font-weight:900;color:white;line-height:1;}
+#header .count .lbl{font-size:10px;color:#86efac;}
+
+/* タブ */
+#tabs{
+  display:flex;background:white;border-bottom:2px solid var(--green-light);
+  position:fixed;left:0;right:0;z-index:199;
+  top:calc(var(--header-h) + env(safe-area-inset-top,0px));
+}
+.tab-btn{flex:1;height:var(--tab-h);border:none;background:none;font-family:'Noto Sans JP',sans-serif;font-size:14px;cursor:pointer;color:#9ca3af;font-weight:400;border-bottom:2.5px solid transparent;transition:all .2s;}
+.tab-btn.active{color:var(--green-main);font-weight:700;border-bottom-color:var(--green-main);}
+
+/* 季節バー */
+#season-bar{
+  display:flex;gap:6px;padding:8px 14px;overflow-x:auto;background:white;
+  border-bottom:1px solid var(--green-light);scrollbar-width:none;
+  position:fixed;left:0;right:0;z-index:198;
+  top:calc(var(--header-h) + var(--tab-h) + env(safe-area-inset-top,0px));
+}
+#season-bar::-webkit-scrollbar{display:none;}
+.s-btn{white-space:nowrap;padding:4px 13px;border-radius:99px;border:1.5px solid #e5e7eb;background:white;font-family:'Noto Sans JP',sans-serif;font-size:12px;cursor:pointer;transition:all .15s;color:#6b7280;font-weight:400;}
+.s-btn.active{font-weight:700;}
+
+/* コンテンツ領域 */
+.content-area{
+  padding-top:calc(var(--header-h) + var(--tab-h) + var(--season-h) + env(safe-area-inset-top,0px));
+  padding-bottom:calc(90px + var(--safe-bottom));
+  min-height:100vh;
+}
+
+/* マップ */
+#map-view{display:none;}
+#map-view.active{display:block;}
+#map{
+  height:calc(100vh - var(--header-h) - var(--tab-h) - var(--season-h) - env(safe-area-inset-top,0px) - 90px - var(--safe-bottom));
+  width:100%;
+}
+
+/* リスト */
+#list-view{display:none;padding:14px;}
+#list-view.active{display:block;}
+.empty-state{text-align:center;padding:60px 20px;color:#9ca3af;}
+.empty-state .icon{font-size:52px;margin-bottom:12px;}
+.empty-state .title{font-weight:700;margin-bottom:6px;font-size:16px;}
+.empty-state .desc{font-size:13px;}
+
+/* カード */
+.entry-card{
+  background:white;border-radius:var(--radius);overflow:hidden;
+  display:flex;margin-bottom:10px;cursor:pointer;
+  box-shadow:0 2px 12px rgba(0,0,0,0.07);
+  border:1px solid var(--green-light);
+  transition:transform .15s,box-shadow .15s;
+  -webkit-tap-highlight-color:rgba(22,163,74,0.08);
+}
+.entry-card:active{transform:scale(0.98);}
+.card-img{width:88px;height:88px;object-fit:cover;flex-shrink:0;}
+.card-img-placeholder{width:88px;height:88px;display:flex;align-items:center;justify-content:center;font-size:36px;flex-shrink:0;background:var(--green-pale);}
+.card-body{padding:10px 14px;flex:1;min-width:0;}
+.card-name{font-weight:800;font-size:15px;margin-bottom:4px;}
+.card-tags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:3px;}
+.tag{font-size:11px;border-radius:99px;padding:1px 7px;border:1px solid;}
+.tag-cat{background:var(--green-pale);color:var(--green-main);border-color:#bbf7d0;}
+.tag-ai{background:#eff6ff;color:#2563eb;border-color:#bfdbfe;}
+.tag-season{font-size:11px;border-radius:99px;padding:1px 8px;border:1px solid;font-weight:600;}
+.card-date{font-size:12px;color:#6b7280;}
+.card-memo{font-size:12px;color:#9ca3af;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* FAB */
+#fab-label{
+  position:fixed;bottom:calc(24px + var(--safe-bottom));right:20px;z-index:200;cursor:pointer;
+}
+#fab{
+  width:64px;height:64px;border-radius:99px;
+  background:linear-gradient(135deg,#16a34a,#15803d);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 6px 24px rgba(21,128,61,0.5);font-size:28px;
+  transition:all .2s;
+}
+#fab:active{transform:scale(0.92);}
+#fab.loading{background:#9ca3af;}
+#fab-input{display:none;}
+
+/* 解析オーバーレイ */
+#analyzing-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);
+  z-index:500;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+}
+#analyzing-overlay.active{display:flex;}
+.analyzing-icon{font-size:56px;animation:spin 1.2s linear infinite;}
+.analyzing-title{color:white;font-weight:700;font-size:18px;font-family:'Zen Maru Gothic',sans-serif;}
+.analyzing-sub{color:#86efac;font-size:13px;}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+/* 詳細モーダル */
+#detail-modal{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);
+  z-index:300;align-items:center;justify-content:center;padding:16px;
+}
+#detail-modal.active{display:flex;}
+.modal-box{background:white;border-radius:20px;width:100%;max-width:440px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,0.3);max-height:90vh;overflow-y:auto;}
+.modal-photo{width:100%;height:220px;object-fit:cover;}
+.modal-photo-placeholder{height:110px;display:flex;align-items:center;justify-content:center;font-size:52px;background:var(--green-pale);}
+.modal-body{padding:18px 20px;}
+.modal-name{font-weight:800;font-size:20px;margin-bottom:6px;}
+.modal-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+.modal-date{font-size:13px;color:#6b7280;margin-bottom:8px;}
+.modal-memo{font-size:14px;color:#374151;background:#f9fafb;border-radius:8px;padding:10px 12px;margin-bottom:14px;}
+.modal-loc{font-size:12px;color:#6b7280;margin-bottom:14px;}
+.modal-actions{display:flex;gap:8px;}
+.btn{padding:12px;border-radius:10px;font-family:'Noto Sans JP',sans-serif;font-weight:600;font-size:14px;cursor:pointer;border:1.5px solid;transition:all .15s;}
+.btn:active{transform:scale(0.96);}
+.btn-close{flex:1;border-color:#e5e7eb;background:white;color:#6b7280;}
+.btn-edit{flex:1;border-color:#bbf7d0;background:var(--green-pale);color:var(--green-main);}
+.btn-del{padding:12px 16px;border-color:#fee2e2;background:#fff5f5;color:#ef4444;}
+
+/* 編集モーダル */
+#edit-modal{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);
+  z-index:400;align-items:flex-end;
+}
+#edit-modal.active{display:flex;}
+.edit-sheet{
+  background:white;border-radius:20px 20px 0 0;width:100%;
+  max-height:88vh;overflow-y:auto;
+  padding:24px 20px calc(24px + var(--safe-bottom));
+}
+.edit-title{font-family:'Zen Maru Gothic',sans-serif;font-weight:700;font-size:17px;margin-bottom:18px;color:var(--green-main);}
+.field-label{font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;}
+.field-input{width:100%;padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:15px;font-family:'Noto Sans JP',sans-serif;outline:none;transition:border-color .15s;}
+.field-input:focus{border-color:var(--green-main);}
+.field-group{margin-bottom:14px;}
+.cat-row{display:flex;gap:6px;flex-wrap:wrap;}
+.cat-btn{padding:6px 13px;border-radius:99px;border:1.5px solid #e5e7eb;background:white;font-family:'Noto Sans JP',sans-serif;font-size:12px;cursor:pointer;transition:all .15s;color:#6b7280;}
+.cat-btn.active{border-color:var(--green-main);background:var(--green-pale);color:var(--green-main);font-weight:700;}
+.edit-actions{display:flex;gap:10px;margin-top:20px;}
+.btn-cancel{flex:1;padding:14px;border:1.5px solid #e5e7eb;border-radius:12px;background:white;color:#6b7280;font-weight:600;font-size:15px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;}
+.btn-save{flex:2;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg,#16a34a,#15803d);color:white;font-weight:700;font-size:15px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;box-shadow:0 4px 12px rgba(22,163,74,0.35);}
+
+/* トースト */
+#toast{
+  position:fixed;bottom:calc(100px + var(--safe-bottom));left:50%;transform:translateX(-50%) translateY(20px);
+  border-radius:99px;padding:10px 22px;font-weight:600;font-size:14px;
+  box-shadow:0 4px 20px rgba(0,0,0,0.18);z-index:600;white-space:nowrap;
+  opacity:0;transition:all .3s;pointer-events:none;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* マップ情報ウィンドウ カスタム */
+.gm-info{font-family:'Noto Sans JP',sans-serif;min-width:160px;}
+.gm-info .name{font-weight:700;font-size:14px;margin-bottom:4px;}
+.gm-info .date{font-size:12px;color:#6b7280;}
+.gm-info .open-btn{margin-top:8px;padding:6px 14px;border:none;border-radius:8px;background:var(--green-main);color:white;font-size:12px;font-weight:600;cursor:pointer;font-family:'Noto Sans JP',sans-serif;width:100%;}
+</style>
+</head>
+<body>
+
+<!-- ヘッダー -->
+<div id="header">
+  <div>
+    <div class="logo">🌿 自然図鑑</div>
+    <div class="sub">AI自動識別 × フィールドノート</div>
+  </div>
+  <div class="count">
+    <div class="num" id="count-num">0</div>
+    <div class="lbl">件の記録</div>
+  </div>
+</div>
+
+<!-- タブ -->
+<div id="tabs">
+  <button class="tab-btn active" onclick="switchTab('list')">📋 図鑑</button>
+  <button class="tab-btn" onclick="switchTab('map')">🗺️ マップ</button>
+</div>
+
+<!-- 季節フィルター -->
+<div id="season-bar"></div>
+
+<!-- コンテンツ -->
+<div class="content-area">
+  <!-- リスト -->
+  <div id="list-view" class="active">
+    <div id="entry-list"></div>
+  </div>
+  <!-- マップ -->
+  <div id="map-view">
+    <div id="map"></div>
+  </div>
+</div>
+
+<!-- FAB -->
+<label id="fab-label">
+  <div id="fab">📷</div>
+  <input type="file" id="fab-input" accept="image/*"/>
+</label>
+
+<!-- 解析オーバーレイ -->
+<div id="analyzing-overlay">
+  <div class="analyzing-icon">🔍</div>
+  <div class="analyzing-title">AIが識別中…</div>
+  <div class="analyzing-sub">種名・カテゴリを自動判定しています</div>
+</div>
+
+<!-- 詳細モーダル -->
+<div id="detail-modal" onclick="closeDetail(event)">
+  <div class="modal-box" id="modal-box">
+    <div id="modal-photo-area"></div>
+    <div class="modal-body">
+      <div class="modal-name" id="modal-name"></div>
+      <div class="modal-tags" id="modal-tags"></div>
+      <div class="modal-date" id="modal-date"></div>
+      <div class="modal-memo" id="modal-memo" style="display:none"></div>
+      <div class="modal-loc" id="modal-loc"></div>
+      <div class="modal-actions">
+        <button class="btn btn-close" onclick="closeDetail()">閉じる</button>
+        <button class="btn btn-edit" onclick="openEdit()">✏️ 編集</button>
+        <button class="btn btn-del" onclick="deleteEntry()">🗑️</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 編集モーダル -->
+<div id="edit-modal">
+  <div class="edit-sheet">
+    <div class="edit-title">✏️ 記録を編集</div>
+    <div class="field-group">
+      <div class="field-label">名前</div>
+      <input class="field-input" id="edit-name" placeholder="例：ソメイヨシノ"/>
+    </div>
+    <div class="field-group">
+      <div class="field-label">カテゴリ</div>
+      <div class="cat-row" id="edit-cats"></div>
+    </div>
+    <div class="field-group">
+      <div class="field-label">見つけた日</div>
+      <input class="field-input" type="date" id="edit-date"/>
+    </div>
+    <div class="field-group">
+      <div class="field-label">メモ</div>
+      <input class="field-input" id="edit-memo" placeholder="特徴など"/>
+    </div>
+    <div class="edit-actions">
+      <button class="btn-cancel" onclick="closeEdit()">キャンセル</button>
+      <button class="btn-save" onclick="saveEdit()">💾 保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- トースト -->
+<div id="toast"></div>
+
+<!-- Google Maps -->
+<script>
+const MAPS_API_KEY = "AIzaSyDX9CyJmylG8WlkbEzJHz5daCPqw79ro1Y";
+const ANTHROPIC_KEY = ""; // Claude.ai経由なのでキー不要
+
+const SEASONS = [
+  {label:"すべて", value:"all", color:"#6b7280", bg:"#f3f4f6"},
+  {label:"🌸 春", value:"spring", months:[3,4,5], color:"#db2777", bg:"#fdf2f8"},
+  {label:"🌿 夏", value:"summer", months:[6,7,8], color:"#16a34a", bg:"#f0fdf4"},
+  {label:"🍂 秋", value:"autumn", months:[9,10,11], color:"#ea580c", bg:"#fff7ed"},
+  {label:"❄️ 冬", value:"winter", months:[12,1,2], color:"#2563eb", bg:"#eff6ff"},
+];
+const CATS = ["植物","動物","鳥","昆虫","魚","その他"];
+const CAT_ICON = {植物:"🌿",動物:"🐾",鳥:"🐦",昆虫:"🐛",魚:"🐟",その他:"📍"};
+
+let entries = [];
+let currentSeason = "all";
+let currentTab = "list";
+let googleMap = null;
+let mapMarkers = {};
+let selectedEntry = null;
+let infoWindow = null;
+
+// ── ストレージ ──
+async function loadEntries() {
+  try {
+    const r = await window.storage.get("zukan-pwa");
+    if (r?.value) entries = JSON.parse(r.value);
+  } catch(e) { entries = []; }
+  render();
+}
+async function saveEntries() {
+  try { await window.storage.set("zukan-pwa", JSON.stringify(entries)); } catch(e){}
+}
+
+// ── シーズン ──
+function getSeason(dateStr) {
+  if (!dateStr) return null;
+  const m = new Date(dateStr).getMonth() + 1;
+  return SEASONS.find(s => s.months?.includes(m))?.value ?? null;
+}
+function getSeasonInfo(dateStr) {
+  return SEASONS.find(s => s.value === getSeason(dateStr)) ?? SEASONS[0];
+}
+
+// ── 季節バー ──
+function buildSeasonBar() {
+  const bar = document.getElementById("season-bar");
+  bar.innerHTML = SEASONS.map(s => `
+    <button class="s-btn ${currentSeason===s.value?'active':''}"
+      style="${currentSeason===s.value?`border-color:${s.color};background:${s.bg};color:${s.color};`:''}"
+      onclick="setSeason('${s.value}')">${s.label}</button>
+  `).join("");
+}
+function setSeason(v) { currentSeason = v; render(); }
+
+// ── タブ切替 ──
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll(".tab-btn").forEach((b,i) => b.classList.toggle("active", (i===0&&tab==="list")||(i===1&&tab==="map")));
+  document.getElementById("list-view").classList.toggle("active", tab==="list");
+  document.getElementById("map-view").classList.toggle("active", tab==="map");
+  if (tab==="map") initMap();
+}
+
+// ── Google Maps 初期化 ──
+function initMap() {
+  if (googleMap) { refreshMarkers(); return; }
+  googleMap = new google.maps.Map(document.getElementById("map"), {
+    center: {lat: 35.7024, lng: 139.5775}, // 井の頭公園
+    zoom: 15,
+    mapTypeControl: false,
+    streetViewControl: false,
+    fullscreenControl: false,
+    zoomControlOptions: { position: google.maps.ControlPosition.RIGHT_CENTER },
+    styles: [
+      {featureType:"poi.business",stylers:[{visibility:"off"}]},
+      {featureType:"transit",stylers:[{visibility:"off"}]},
+    ]
+  });
+  infoWindow = new google.maps.InfoWindow();
+  // マップクリックで手動追加
+  googleMap.addListener("click", async (e) => {
+    const lat = e.latLng.lat();
+    const lng = e.latLng.lng();
+    await addManualEntry(lat, lng);
+  });
+  refreshMarkers();
+}
+
+function refreshMarkers() {
+  if (!googleMap) return;
+  // 既存マーカー削除
+  Object.values(mapMarkers).forEach(m => m.setMap(null));
+  mapMarkers = {};
+  const filtered = getFiltered();
+  filtered.forEach(entry => addMarker(entry));
+}
+
+function addMarker(entry) {
+  if (!googleMap || !entry.lat || !entry.lng) return;
+  const s = getSeasonInfo(entry.date);
+  const icon = {
+    path: google.maps.SymbolPath.CIRCLE,
+    fillColor: s.color,
+    fillOpacity: 1,
+    strokeColor: "white",
+    strokeWeight: 2.5,
+    scale: 10,
+  };
+  const marker = new google.maps.Marker({
+    position: {lat: entry.lat, lng: entry.lng},
+    map: googleMap,
+    title: entry.name,
+    icon,
+    animation: google.maps.Animation.DROP,
+  });
+  marker.addListener("click", () => {
+    const content = `
+      <div class="gm-info">
+        ${entry.photoUrl ? `<img src="${entry.photoUrl}" style="width:100%;height:80px;object-fit:cover;border-radius:8px;margin-bottom:6px;"/>` : `<div style="font-size:28px;text-align:center;margin-bottom:4px;">${CAT_ICON[entry.category]??'📍'}</div>`}
+        <div class="name">${entry.name}</div>
+        <div class="date">📅 ${entry.date}</div>
+        <button class="open-btn" onclick="openDetail('${entry.id}')">詳細を見る</button>
+      </div>`;
+    infoWindow.setContent(content);
+    infoWindow.open(googleMap, marker);
+  });
+  mapMarkers[entry.id] = marker;
+}
+
+// ── Exif GPS抽出 ──
+function extractExifGPS(buffer) {
+  try {
+    const view = new DataView(buffer);
+    if (view.getUint16(0) !== 0xFFD8) return null;
+    let offset = 2;
+    while (offset < view.byteLength - 4) {
+      const marker = view.getUint16(offset);
+      const len = view.getUint16(offset + 2);
+      if (marker === 0xFFE1) {
+        const header = String.fromCharCode(...new Uint8Array(buffer, offset+4, 6));
+        if (header.startsWith("Exif")) {
+          const tiff = offset + 10;
+          const le = view.getUint16(tiff) === 0x4949;
+          const ifd0 = view.getUint32(tiff+4, le);
+          const n = view.getUint16(tiff+ifd0, le);
+          let gpsIFDOffset = null;
+          for (let i = 0; i < n; i++) {
+            const e = tiff + ifd0 + 2 + i*12;
+            if (view.getUint16(e, le) === 0x8825) {
+              gpsIFDOffset = view.getUint32(e+8, le);
+            }
+          }
+          if (gpsIFDOffset !== null) {
+            const gn = view.getUint16(tiff+gpsIFDOffset, le);
+            let latRef,latDMS,lngRef,lngDMS;
+            for (let i = 0; i < gn; i++) {
+              const e = tiff + gpsIFDOffset + 2 + i*12;
+              const tag = view.getUint16(e, le);
+              const count = view.getUint32(e+4, le);
+              const valOff = view.getUint32(e+8, le);
+              if (tag === 1) latRef = String.fromCharCode(new Uint8Array(buffer, tiff+valOff, 1)[0]);
+              if (tag === 3) lngRef = String.fromCharCode(new Uint8Array(buffer, tiff+valOff, 1)[0]);
+              if (tag === 2) {
+                latDMS = [0,1,2].map(j => {
+                  const n = view.getUint32(tiff+valOff+j*8, le);
+                  const d = view.getUint32(tiff+valOff+j*8+4, le);
+                  return n/d;
+                });
+              }
+              if (tag === 4) {
+                lngDMS = [0,1,2].map(j => {
+                  const n = view.getUint32(tiff+valOff+j*8, le);
+                  const d = view.getUint32(tiff+valOff+j*8+4, le);
+                  return n/d;
+                });
+              }
+            }
+            if (latDMS && lngDMS) {
+              let lat = latDMS[0] + latDMS[1]/60 + latDMS[2]/3600;
+              let lng = lngDMS[0] + lngDMS[1]/60 + lngDMS[2]/3600;
+              if (latRef==="S") lat = -lat;
+              if (lngRef==="W") lng = -lng;
+              return {lat, lng};
+            }
+          }
+        }
+      }
+      offset += 2 + len;
+    }
+  } catch(e){}
+  return null;
+}
+
+// ── Exif 日付 ──
+function extractExifDate(buffer) {
+  try {
+    const view = new DataView(buffer);
+    if (view.getUint16(0) !== 0xFFD8) return null;
+    let offset = 2;
+    while (offset < view.byteLength - 4) {
+      const marker = view.getUint16(offset);
+      const len = view.getUint16(offset + 2);
+      if (marker === 0xFFE1) {
+        const header = String.fromCharCode(...new Uint8Array(buffer, offset+4, 6));
+        if (header.startsWith("Exif")) {
+          const tiff = offset + 10;
+          const le = view.getUint16(tiff) === 0x4949;
+          const ifd = view.getUint32(tiff+4, le);
+          const n = view.getUint16(tiff+ifd, le);
+          for (let i = 0; i < n; i++) {
+            const e = tiff + ifd + 2 + i*12;
+            const tag = view.getUint16(e, le);
+            if (tag === 0x9003 || tag === 0x0132) {
+              const vo = view.getUint32(e+8, le);
+              const ds = String.fromCharCode(...new Uint8Array(buffer, tiff+vo, 19));
+              return ds.split(" ")[0].replace(/:/g,"-");
+            }
+          }
+        }
+      }
+      offset += 2 + len;
+    }
+  } catch(e){}
+  return null;
+}
+
+// ── Claude API で識別 ──
+async function identifyWithClaude(base64, mediaType) {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1000,
+      system: `あなたは生物・植物の識別専門家です。写真を見て種名まで特定し、JSON形式のみで返答してください（マークダウン不要）。
+形式: {"name":"種名","category":"植物or動物or鳥or昆虫or魚orその他","confidence":"high or medium or low","memo":"特徴一言(40文字以内)"}
+特定できない場合は「○○の仲間」、生物がいない場合はname「不明」。`,
+      messages: [{role:"user", content:[
+        {type:"image", source:{type:"base64", media_type:mediaType, data:base64}},
+        {type:"text", text:"この写真に写っている生き物・植物を識別してください。"}
+      ]}]
+    })
+  });
+  const data = await res.json();
+  const text = data.content?.find(b=>b.type==="text")?.text ?? "{}";
+  return JSON.parse(text.replace(/```json|```/g,"").trim());
+}
+
+// ── 写真アップロード → 自動保存 ──
+document.getElementById("fab-input").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  e.target.value = "";
+
+  document.getElementById("analyzing-overlay").classList.add("active");
+  document.getElementById("fab").classList.add("loading");
+  document.getElementById("fab").textContent = "⏳";
+
+  try {
+    // base64
+    const base64 = await new Promise((res,rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(",")[1]);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+    const photoUrl = `data:${file.type};base64,${base64}`;
+
+    // Exif
+    const buf = await file.arrayBuffer();
+    const exifDate = extractExifDate(buf);
+    const exifGPS  = extractExifGPS(buf);
+    const date = exifDate ?? new Date().toISOString().slice(0,10);
+
+    // 位置
+    let lat = exifGPS?.lat ?? 35.7024;
+    let lng = exifGPS?.lng ?? 139.5775;
+    // GPS取れなかった場合は現在地を試みる
+    if (!exifGPS) {
+      try {
+        const pos = await new Promise((res,rej) => navigator.geolocation.getCurrentPosition(res,rej,{timeout:3000}));
+        lat = pos.coords.latitude;
+        lng = pos.coords.longitude;
+      } catch(e) {}
+    }
+
+    // Claude識別
+    let name="不明", category="その他", memo="";
+    try {
+      const r = await identifyWithClaude(base64, file.type||"image/jpeg");
+      name = r.name ?? "不明";
+      category = r.category ?? "その他";
+      memo = r.memo ?? "";
+    } catch(e) { showToast("AI識別に失敗しました","error"); }
+
+    const entry = {
+      id: Date.now().toString(),
+      name, category, date, memo, photoUrl,
+      lat, lng, aiGenerated: true
+    };
+    entries.unshift(entry);
+    await saveEntries();
+    render();
+    showToast(`✅ 「${name}」を登録しました！`);
+    // マップに切替して確認
+    switchTab("map");
+    if (googleMap) {
+      googleMap.setCenter({lat, lng});
+      googleMap.setZoom(17);
+    }
+  } catch(e) {
+    showToast("エラーが発生しました","error");
+  } finally {
+    document.getElementById("analyzing-overlay").classList.remove("active");
+    document.getElementById("fab").classList.remove("loading");
+    document.getElementById("fab").textContent = "📷";
+  }
+});
+
+// ── 手動追加（マップタップ）──
+async function addManualEntry(lat, lng) {
+  const entry = {
+    id: Date.now().toString(),
+    name:"名称未設定", category:"その他",
+    date: new Date().toISOString().slice(0,10),
+    memo:"", photoUrl:"", lat, lng, aiGenerated:false
+  };
+  entries.unshift(entry);
+  await saveEntries();
+  render();
+  selectedEntry = entry;
+  openEdit();
+}
+
+// ── フィルター ──
+function getFiltered() {
+  return entries.filter(e => currentSeason==="all" || getSeason(e.date)===currentSeason);
+}
+
+// ── レンダリング ──
+function render() {
+  const filtered = getFiltered();
+  document.getElementById("count-num").textContent = entries.length;
+  buildSeasonBar();
+  buildList(filtered);
+  refreshMarkers();
+}
+
+function buildList(filtered) {
+  const el = document.getElementById("entry-list");
+  if (filtered.length === 0) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="icon">🌱</div>
+      <div class="title">まだ記録がありません</div>
+      <div class="desc">📷ボタンから写真を追加しよう</div>
+    </div>`;
+    return;
+  }
+  el.innerHTML = filtered.map(e => {
+    const s = getSeasonInfo(e.date);
+    return `<div class="entry-card" onclick="openDetail('${e.id}')">
+      ${e.photoUrl
+        ? `<img class="card-img" src="${e.photoUrl}" alt="${e.name}"/>`
+        : `<div class="card-img-placeholder">${CAT_ICON[e.category]??'📍'}</div>`}
+      <div class="card-body">
+        <div class="card-name">${e.name}</div>
+        <div class="card-tags">
+          <span class="tag tag-cat">${e.category}</span>
+          <span class="tag tag-season" style="background:${s.bg};color:${s.color};border-color:${s.color}44">${s.label}</span>
+          ${e.aiGenerated?`<span class="tag tag-ai">🤖 AI識別</span>`:''}
+        </div>
+        <div class="card-date">📅 ${e.date}</div>
+        ${e.memo?`<div class="card-memo">${e.memo}</div>`:''}
+      </div>
+    </div>`;
+  }).join("");
+}
+
+// ── 詳細モーダル ──
+function openDetail(id) {
+  selectedEntry = entries.find(e => e.id === id);
+  if (!selectedEntry) return;
+  const e = selectedEntry;
+  const s = getSeasonInfo(e.date);
+  document.getElementById("modal-photo-area").innerHTML = e.photoUrl
+    ? `<img class="modal-photo" src="${e.photoUrl}" alt="${e.name}"/>`
+    : `<div class="modal-photo-placeholder">${CAT_ICON[e.category]??'📍'}</div>`;
+  document.getElementById("modal-name").textContent = e.name;
+  document.getElementById("modal-tags").innerHTML = `
+    <span class="tag tag-cat">${e.category}</span>
+    <span class="tag tag-season" style="background:${s.bg};color:${s.color};border-color:${s.color}44">${s.label}</span>
+    ${e.aiGenerated?`<span class="tag tag-ai">🤖 AI識別</span>`:''}`;
+  document.getElementById("modal-date").textContent = `📅 ${e.date}`;
+  const memoEl = document.getElementById("modal-memo");
+  if (e.memo) { memoEl.textContent = e.memo; memoEl.style.display="block"; }
+  else memoEl.style.display="none";
+  document.getElementById("modal-loc").textContent = e.lat ? `📍 ${e.lat.toFixed(5)}, ${e.lng.toFixed(5)}` : "";
+  document.getElementById("detail-modal").classList.add("active");
+}
+function closeDetail(event) {
+  if (event && event.target !== document.getElementById("detail-modal")) return;
+  document.getElementById("detail-modal").classList.remove("active");
+  if (infoWindow) infoWindow.close();
+}
+
+// ── 削除 ──
+async function deleteEntry() {
+  if (!selectedEntry) return;
+  entries = entries.filter(e => e.id !== selectedEntry.id);
+  await saveEntries();
+  document.getElementById("detail-modal").classList.remove("active");
+  selectedEntry = null;
+  render();
+  showToast("🗑️ 削除しました","warn");
+}
+
+// ── 編集モーダル ──
+function openEdit() {
+  if (!selectedEntry) return;
+  document.getElementById("edit-name").value = selectedEntry.name;
+  document.getElementById("edit-date").value = selectedEntry.date;
+  document.getElementById("edit-memo").value = selectedEntry.memo || "";
+  const catRow = document.getElementById("edit-cats");
+  catRow.innerHTML = CATS.map(c =>
+    `<button class="cat-btn ${selectedEntry.category===c?'active':''}" onclick="selectCat(this,'${c}')">${CAT_ICON[c]} ${c}</button>`
+  ).join("");
+  document.getElementById("detail-modal").classList.remove("active");
+  document.getElementById("edit-modal").classList.add("active");
+}
+function selectCat(btn, cat) {
+  document.querySelectorAll(".cat-btn").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  if (selectedEntry) selectedEntry.category = cat;
+}
+function closeEdit() {
+  document.getElementById("edit-modal").classList.remove("active");
+}
+async function saveEdit() {
+  if (!selectedEntry) return;
+  selectedEntry.name = document.getElementById("edit-name").value || "名称未設定";
+  selectedEntry.date = document.getElementById("edit-date").value;
+  selectedEntry.memo = document.getElementById("edit-memo").value;
+  const idx = entries.findIndex(e=>e.id===selectedEntry.id);
+  if (idx>=0) entries[idx] = {...selectedEntry};
+  await saveEntries();
+  closeEdit();
+  render();
+  showToast("💾 保存しました");
+}
+
+// ── トースト ──
+function showToast(msg, type="success") {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.style.background = type==="error"?"#fee2e2":type==="warn"?"#fff7ed":"#f0fdf4";
+  t.style.color = type==="error"?"#dc2626":type==="warn"?"#ea580c":"#16a34a";
+  t.style.border = `1.5px solid ${type==="error"?"#fca5a5":type==="warn"?"#fed7aa":"#bbf7d0"}`;
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), 3000);
+}
+
+// ── 起動 ──
+window.addEventListener("load", async () => {
+  await loadEntries();
+});
+</script>
+
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDX9CyJmylG8WlkbEzJHz5daCPqw79ro1Y&language=ja&region=JP" async defer></script>
+
+</body>
+</html>
