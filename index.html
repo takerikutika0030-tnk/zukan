@@ -8,753 +8,444 @@
 <meta name="apple-mobile-web-app-title" content="自然図鑑"/>
 <meta name="theme-color" content="#14532d"/>
 <link rel="manifest" href="manifest.json"/>
-<link rel="apple-touch-icon" href="icon-192.png"/>
 <title>自然図鑑</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@700;900&family=Noto+Sans+JP:wght@400;600;700&display=swap');
-
-:root {
-  --green-deep:#14532d; --green-main:#16a34a; --green-light:#dcfce7;
-  --green-pale:#f0fdf4; --radius:14px; --header-h:60px; --tab-h:48px; --season-h:46px;
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
-}
+:root{--gm:#16a34a;--gd:#14532d;--gl:#dcfce7;--gp:#f0fdf4;--hh:60px;--th:48px;--sh:46px;--sb:env(safe-area-inset-bottom,0px);--st:env(safe-area-inset-top,0px);}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-body{font-family:'Noto Sans JP',sans-serif;background:var(--green-pale);color:#1c1917;min-height:100vh;overflow-x:hidden;}
-
-/* ヘッダー */
-#header{
-  background:linear-gradient(135deg,#14532d,#166534);
-  height:var(--header-h); padding:0 18px;
-  display:flex;align-items:center;gap:12px;
-  box-shadow:0 3px 20px rgba(20,83,45,0.4);
-  position:fixed;top:0;left:0;right:0;z-index:200;
-  padding-top:env(safe-area-inset-top,0px);
-}
-#header .logo{font-family:'Zen Maru Gothic',sans-serif;font-weight:900;font-size:19px;color:white;letter-spacing:1px;}
-#header .sub{font-size:10px;color:#86efac;margin-top:1px;}
-#header .count{margin-left:auto;text-align:right;}
-#header .count .num{font-family:'Zen Maru Gothic',sans-serif;font-size:22px;font-weight:900;color:white;line-height:1;}
-#header .count .lbl{font-size:10px;color:#86efac;}
-
-/* タブ */
-#tabs{
-  display:flex;background:white;border-bottom:2px solid var(--green-light);
-  position:fixed;left:0;right:0;z-index:199;
-  top:calc(var(--header-h) + env(safe-area-inset-top,0px));
-}
-.tab-btn{flex:1;height:var(--tab-h);border:none;background:none;font-family:'Noto Sans JP',sans-serif;font-size:14px;cursor:pointer;color:#9ca3af;font-weight:400;border-bottom:2.5px solid transparent;transition:all .2s;}
-.tab-btn.active{color:var(--green-main);font-weight:700;border-bottom-color:var(--green-main);}
-
-/* 季節バー */
-#season-bar{
-  display:flex;gap:6px;padding:8px 14px;overflow-x:auto;background:white;
-  border-bottom:1px solid var(--green-light);scrollbar-width:none;
-  position:fixed;left:0;right:0;z-index:198;
-  top:calc(var(--header-h) + var(--tab-h) + env(safe-area-inset-top,0px));
-}
-#season-bar::-webkit-scrollbar{display:none;}
-.s-btn{white-space:nowrap;padding:4px 13px;border-radius:99px;border:1.5px solid #e5e7eb;background:white;font-family:'Noto Sans JP',sans-serif;font-size:12px;cursor:pointer;transition:all .15s;color:#6b7280;font-weight:400;}
-.s-btn.active{font-weight:700;}
-
-/* コンテンツ領域 */
-.content-area{
-  padding-top:calc(var(--header-h) + var(--tab-h) + var(--season-h) + env(safe-area-inset-top,0px));
-  padding-bottom:calc(90px + var(--safe-bottom));
-  min-height:100vh;
-}
-
-/* マップ */
-#map-view{display:none;}
-#map-view.active{display:block;}
-#map{
-  height:calc(100vh - var(--header-h) - var(--tab-h) - var(--season-h) - env(safe-area-inset-top,0px) - 90px - var(--safe-bottom));
-  width:100%;
-}
-
-/* リスト */
-#list-view{display:none;padding:14px;}
-#list-view.active{display:block;}
-.empty-state{text-align:center;padding:60px 20px;color:#9ca3af;}
-.empty-state .icon{font-size:52px;margin-bottom:12px;}
-.empty-state .title{font-weight:700;margin-bottom:6px;font-size:16px;}
-.empty-state .desc{font-size:13px;}
-
-/* カード */
-.entry-card{
-  background:white;border-radius:var(--radius);overflow:hidden;
-  display:flex;margin-bottom:10px;cursor:pointer;
-  box-shadow:0 2px 12px rgba(0,0,0,0.07);
-  border:1px solid var(--green-light);
-  transition:transform .15s,box-shadow .15s;
-  -webkit-tap-highlight-color:rgba(22,163,74,0.08);
-}
-.entry-card:active{transform:scale(0.98);}
-.card-img{width:88px;height:88px;object-fit:cover;flex-shrink:0;}
-.card-img-placeholder{width:88px;height:88px;display:flex;align-items:center;justify-content:center;font-size:36px;flex-shrink:0;background:var(--green-pale);}
-.card-body{padding:10px 14px;flex:1;min-width:0;}
-.card-name{font-weight:800;font-size:15px;margin-bottom:4px;}
-.card-tags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:3px;}
-.tag{font-size:11px;border-radius:99px;padding:1px 7px;border:1px solid;}
-.tag-cat{background:var(--green-pale);color:var(--green-main);border-color:#bbf7d0;}
-.tag-ai{background:#eff6ff;color:#2563eb;border-color:#bfdbfe;}
-.tag-season{font-size:11px;border-radius:99px;padding:1px 8px;border:1px solid;font-weight:600;}
-.card-date{font-size:12px;color:#6b7280;}
-.card-memo{font-size:12px;color:#9ca3af;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-
-/* FAB */
-#fab-label{
-  position:fixed;bottom:calc(24px + var(--safe-bottom));right:20px;z-index:200;cursor:pointer;
-}
-#fab{
-  width:64px;height:64px;border-radius:99px;
-  background:linear-gradient(135deg,#16a34a,#15803d);
-  display:flex;align-items:center;justify-content:center;
-  box-shadow:0 6px 24px rgba(21,128,61,0.5);font-size:28px;
-  transition:all .2s;
-}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--gp);color:#1c1917;min-height:100vh;overflow-x:hidden;}
+#hdr{background:linear-gradient(135deg,#14532d,#166534);height:var(--hh);padding:0 18px;display:flex;align-items:center;gap:12px;box-shadow:0 3px 20px rgba(20,83,45,0.4);position:fixed;top:0;left:0;right:0;z-index:200;padding-top:var(--st);}
+.logo{font-family:'Zen Maru Gothic',sans-serif;font-weight:900;font-size:19px;color:white;letter-spacing:1px;}
+.sub{font-size:10px;color:#86efac;margin-top:1px;}
+.cnt{margin-left:auto;text-align:right;}
+.cnt .n{font-family:'Zen Maru Gothic',sans-serif;font-size:22px;font-weight:900;color:white;line-height:1;}
+.cnt .l{font-size:10px;color:#86efac;}
+#tabs{display:flex;background:white;border-bottom:2px solid var(--gl);position:fixed;left:0;right:0;z-index:199;top:calc(var(--hh) + var(--st));}
+.tb{flex:1;height:var(--th);border:none;background:none;font-family:'Noto Sans JP',sans-serif;font-size:14px;cursor:pointer;color:#9ca3af;font-weight:400;border-bottom:2.5px solid transparent;}
+.tb.on{color:var(--gm);font-weight:700;border-bottom-color:var(--gm);}
+#sbar{display:flex;gap:6px;padding:8px 14px;overflow-x:auto;background:white;border-bottom:1px solid var(--gl);scrollbar-width:none;position:fixed;left:0;right:0;z-index:198;top:calc(var(--hh) + var(--th) + var(--st));}
+#sbar::-webkit-scrollbar{display:none;}
+.sb{white-space:nowrap;padding:4px 13px;border-radius:99px;border:1.5px solid #e5e7eb;background:white;font-family:'Noto Sans JP',sans-serif;font-size:12px;cursor:pointer;color:#6b7280;font-weight:400;}
+.sb.on{font-weight:700;}
+.ca{padding-top:calc(var(--hh) + var(--th) + var(--sh) + var(--st));padding-bottom:calc(90px + var(--sb));min-height:100vh;}
+#mv{display:none;}#mv.on{display:block;}
+#map{height:calc(100vh - var(--hh) - var(--th) - var(--sh) - var(--st) - 90px - var(--sb));width:100%;}
+#lv{display:none;padding:14px;}#lv.on{display:block;}
+.empty{text-align:center;padding:60px 20px;color:#9ca3af;}
+.empty .ei{font-size:52px;margin-bottom:12px;}
+.empty .et{font-weight:700;margin-bottom:6px;font-size:16px;}
+.empty .ed{font-size:13px;}
+.card{background:white;border-radius:14px;overflow:hidden;display:flex;margin-bottom:10px;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,0.07);border:1px solid var(--gl);}
+.card:active{transform:scale(0.98);}
+.ci{width:88px;height:88px;object-fit:cover;flex-shrink:0;}
+.cp{width:88px;height:88px;display:flex;align-items:center;justify-content:center;font-size:36px;flex-shrink:0;background:var(--gp);}
+.cb{padding:10px 14px;flex:1;min-width:0;}
+.cn{font-weight:800;font-size:15px;margin-bottom:4px;}
+.ct{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:3px;}
+.tg{font-size:11px;border-radius:99px;padding:1px 7px;border:1px solid;}
+.tg-c{background:var(--gp);color:var(--gm);border-color:#bbf7d0;}
+.tg-a{background:#eff6ff;color:#2563eb;border-color:#bfdbfe;}
+.tg-s{font-size:11px;border-radius:99px;padding:1px 8px;border:1px solid;font-weight:600;}
+.cd{font-size:12px;color:#6b7280;}
+.cm{font-size:12px;color:#9ca3af;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#fab{position:fixed;bottom:calc(24px + var(--sb));right:20px;z-index:200;width:64px;height:64px;border-radius:99px;background:linear-gradient(135deg,#16a34a,#15803d);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 24px rgba(21,128,61,0.5);font-size:28px;cursor:pointer;user-select:none;}
 #fab:active{transform:scale(0.92);}
-#fab.loading{background:#9ca3af;}
-#fab-input{display:none;}
-
-/* 解析オーバーレイ */
-#analyzing-overlay{
-  display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);
-  z-index:500;flex-direction:column;align-items:center;justify-content:center;gap:16px;
-}
-#analyzing-overlay.active{display:flex;}
-.analyzing-icon{font-size:56px;animation:spin 1.2s linear infinite;}
-.analyzing-title{color:white;font-weight:700;font-size:18px;font-family:'Zen Maru Gothic',sans-serif;}
-.analyzing-sub{color:#86efac;font-size:13px;}
-@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-
-/* 詳細モーダル */
-#detail-modal{
-  display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);
-  z-index:300;align-items:center;justify-content:center;padding:16px;
-}
-#detail-modal.active{display:flex;}
-.modal-box{background:white;border-radius:20px;width:100%;max-width:440px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,0.3);max-height:90vh;overflow-y:auto;}
-.modal-photo{width:100%;height:220px;object-fit:cover;}
-.modal-photo-placeholder{height:110px;display:flex;align-items:center;justify-content:center;font-size:52px;background:var(--green-pale);}
-.modal-body{padding:18px 20px;}
-.modal-name{font-weight:800;font-size:20px;margin-bottom:6px;}
-.modal-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
-.modal-date{font-size:13px;color:#6b7280;margin-bottom:8px;}
-.modal-memo{font-size:14px;color:#374151;background:#f9fafb;border-radius:8px;padding:10px 12px;margin-bottom:14px;}
-.modal-loc{font-size:12px;color:#6b7280;margin-bottom:14px;}
-.modal-actions{display:flex;gap:8px;}
-.btn{padding:12px;border-radius:10px;font-family:'Noto Sans JP',sans-serif;font-weight:600;font-size:14px;cursor:pointer;border:1.5px solid;transition:all .15s;}
+#fab.ld{background:#9ca3af;}
+#fi{display:none;}
+#ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:500;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
+#ov.on{display:flex;}
+.oi{font-size:56px;animation:sp 1.2s linear infinite;}
+.ot{color:white;font-weight:700;font-size:18px;font-family:'Zen Maru Gothic',sans-serif;}
+.os{color:#86efac;font-size:13px;}
+@keyframes sp{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+#dm{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:300;align-items:center;justify-content:center;padding:16px;}
+#dm.on{display:flex;}
+.mb{background:white;border-radius:20px;width:100%;max-width:440px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,0.3);max-height:90vh;overflow-y:auto;}
+.mp{width:100%;height:220px;object-fit:cover;}
+.mpp{height:110px;display:flex;align-items:center;justify-content:center;font-size:52px;background:var(--gp);}
+.mbd{padding:18px 20px;}
+.mn{font-weight:800;font-size:20px;margin-bottom:6px;}
+.mt{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+.mdt{font-size:13px;color:#6b7280;margin-bottom:8px;}
+.mm{font-size:14px;color:#374151;background:#f9fafb;border-radius:8px;padding:10px 12px;margin-bottom:12px;}
+.ml{font-size:12px;color:#6b7280;margin-bottom:14px;}
+.ma{display:flex;gap:8px;}
+.btn{padding:12px;border-radius:10px;font-family:'Noto Sans JP',sans-serif;font-weight:600;font-size:14px;cursor:pointer;border:1.5px solid;}
 .btn:active{transform:scale(0.96);}
-.btn-close{flex:1;border-color:#e5e7eb;background:white;color:#6b7280;}
-.btn-edit{flex:1;border-color:#bbf7d0;background:var(--green-pale);color:var(--green-main);}
-.btn-del{padding:12px 16px;border-color:#fee2e2;background:#fff5f5;color:#ef4444;}
-
-/* 編集モーダル */
-#edit-modal{
-  display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);
-  z-index:400;align-items:flex-end;
-}
-#edit-modal.active{display:flex;}
-.edit-sheet{
-  background:white;border-radius:20px 20px 0 0;width:100%;
-  max-height:88vh;overflow-y:auto;
-  padding:24px 20px calc(24px + var(--safe-bottom));
-}
-.edit-title{font-family:'Zen Maru Gothic',sans-serif;font-weight:700;font-size:17px;margin-bottom:18px;color:var(--green-main);}
-.field-label{font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;}
-.field-input{width:100%;padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:15px;font-family:'Noto Sans JP',sans-serif;outline:none;transition:border-color .15s;}
-.field-input:focus{border-color:var(--green-main);}
-.field-group{margin-bottom:14px;}
-.cat-row{display:flex;gap:6px;flex-wrap:wrap;}
-.cat-btn{padding:6px 13px;border-radius:99px;border:1.5px solid #e5e7eb;background:white;font-family:'Noto Sans JP',sans-serif;font-size:12px;cursor:pointer;transition:all .15s;color:#6b7280;}
-.cat-btn.active{border-color:var(--green-main);background:var(--green-pale);color:var(--green-main);font-weight:700;}
-.edit-actions{display:flex;gap:10px;margin-top:20px;}
-.btn-cancel{flex:1;padding:14px;border:1.5px solid #e5e7eb;border-radius:12px;background:white;color:#6b7280;font-weight:600;font-size:15px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;}
-.btn-save{flex:2;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg,#16a34a,#15803d);color:white;font-weight:700;font-size:15px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;box-shadow:0 4px 12px rgba(22,163,74,0.35);}
-
-/* トースト */
-#toast{
-  position:fixed;bottom:calc(100px + var(--safe-bottom));left:50%;transform:translateX(-50%) translateY(20px);
-  border-radius:99px;padding:10px 22px;font-weight:600;font-size:14px;
-  box-shadow:0 4px 20px rgba(0,0,0,0.18);z-index:600;white-space:nowrap;
-  opacity:0;transition:all .3s;pointer-events:none;
-}
-#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-
-/* マップ情報ウィンドウ カスタム */
-.gm-info{font-family:'Noto Sans JP',sans-serif;min-width:160px;}
-.gm-info .name{font-weight:700;font-size:14px;margin-bottom:4px;}
-.gm-info .date{font-size:12px;color:#6b7280;}
-.gm-info .open-btn{margin-top:8px;padding:6px 14px;border:none;border-radius:8px;background:var(--green-main);color:white;font-size:12px;font-weight:600;cursor:pointer;font-family:'Noto Sans JP',sans-serif;width:100%;}
+.bc{flex:1;border-color:#e5e7eb;background:white;color:#6b7280;}
+.be{flex:1;border-color:#bbf7d0;background:var(--gp);color:var(--gm);}
+.bd{padding:12px 16px;border-color:#fee2e2;background:#fff5f5;color:#ef4444;}
+#em{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:400;align-items:flex-end;}
+#em.on{display:flex;}
+.es{background:white;border-radius:20px 20px 0 0;width:100%;max-height:88vh;overflow-y:auto;padding:24px 20px calc(24px + var(--sb));}
+.et2{font-family:'Zen Maru Gothic',sans-serif;font-weight:700;font-size:17px;margin-bottom:18px;color:var(--gm);}
+.fl{font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;}
+.fi2{width:100%;padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:15px;font-family:'Noto Sans JP',sans-serif;outline:none;}
+.fi2:focus{border-color:var(--gm);}
+.fg{margin-bottom:14px;}
+.cr{display:flex;gap:6px;flex-wrap:wrap;}
+.cb2{padding:6px 13px;border-radius:99px;border:1.5px solid #e5e7eb;background:white;font-family:'Noto Sans JP',sans-serif;font-size:12px;cursor:pointer;color:#6b7280;}
+.cb2.on{border-color:var(--gm);background:var(--gp);color:var(--gm);font-weight:700;}
+.ea{display:flex;gap:10px;margin-top:20px;}
+.bnc{flex:1;padding:14px;border:1.5px solid #e5e7eb;border-radius:12px;background:white;color:#6b7280;font-weight:600;font-size:15px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;}
+.bns{flex:2;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg,#16a34a,#15803d);color:white;font-weight:700;font-size:15px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;}
+#toast{position:fixed;bottom:calc(100px + var(--sb));left:50%;transform:translateX(-50%) translateY(20px);border-radius:99px;padding:10px 22px;font-weight:600;font-size:14px;box-shadow:0 4px 20px rgba(0,0,0,0.18);z-index:600;white-space:nowrap;opacity:0;transition:all .3s;pointer-events:none;}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
 </style>
 </head>
 <body>
-
-<!-- ヘッダー -->
-<div id="header">
-  <div>
-    <div class="logo">🌿 自然図鑑</div>
-    <div class="sub">AI自動識別 × フィールドノート</div>
-  </div>
-  <div class="count">
-    <div class="num" id="count-num">0</div>
-    <div class="lbl">件の記録</div>
-  </div>
+<div id="hdr">
+  <div><div class="logo">🌿 自然図鑑</div><div class="sub">AI自動識別 × フィールドノート</div></div>
+  <div class="cnt"><div class="n" id="cnum">0</div><div class="l">件の記録</div></div>
 </div>
-
-<!-- タブ -->
 <div id="tabs">
-  <button class="tab-btn active" onclick="switchTab('list')">📋 図鑑</button>
-  <button class="tab-btn" onclick="switchTab('map')">🗺️ マップ</button>
+  <button class="tb on" onclick="switchTab('list')">📋 図鑑</button>
+  <button class="tb" onclick="switchTab('map')">🗺️ マップ</button>
 </div>
-
-<!-- 季節フィルター -->
-<div id="season-bar"></div>
-
-<!-- コンテンツ -->
-<div class="content-area">
-  <!-- リスト -->
-  <div id="list-view" class="active">
-    <div id="entry-list"></div>
-  </div>
-  <!-- マップ -->
-  <div id="map-view">
-    <div id="map"></div>
-  </div>
+<div id="sbar"></div>
+<div class="ca">
+  <div id="lv" class="on"><div id="elist"></div></div>
+  <div id="mv"><div id="map"></div></div>
 </div>
-
-<!-- FAB -->
-<label id="fab-label">
-  <div id="fab">📷</div>
-  <input type="file" id="fab-input" accept="image/*"/>
-</label>
-
-<!-- 解析オーバーレイ -->
-<div id="analyzing-overlay">
-  <div class="analyzing-icon">🔍</div>
-  <div class="analyzing-title">AIが識別中…</div>
-  <div class="analyzing-sub">種名・カテゴリを自動判定しています</div>
+<div id="fab" onclick="document.getElementById('fi').click()">📷</div>
+<input type="file" id="fi" accept="image/*"/>
+<div id="ov">
+  <div class="oi">🔍</div>
+  <div class="ot">AIが識別中…</div>
+  <div class="os">種名・カテゴリを自動判定しています</div>
 </div>
-
-<!-- 詳細モーダル -->
-<div id="detail-modal" onclick="closeDetail(event)">
-  <div class="modal-box" id="modal-box">
-    <div id="modal-photo-area"></div>
-    <div class="modal-body">
-      <div class="modal-name" id="modal-name"></div>
-      <div class="modal-tags" id="modal-tags"></div>
-      <div class="modal-date" id="modal-date"></div>
-      <div class="modal-memo" id="modal-memo" style="display:none"></div>
-      <div class="modal-loc" id="modal-loc"></div>
-      <div class="modal-actions">
-        <button class="btn btn-close" onclick="closeDetail()">閉じる</button>
-        <button class="btn btn-edit" onclick="openEdit()">✏️ 編集</button>
-        <button class="btn btn-del" onclick="deleteEntry()">🗑️</button>
+<div id="dm" onclick="closeDMBg(event)">
+  <div class="mb">
+    <div id="dphoto"></div>
+    <div class="mbd">
+      <div class="mn" id="dname"></div>
+      <div class="mt" id="dtags"></div>
+      <div class="mdt" id="ddate"></div>
+      <div class="mm" id="dmemo" style="display:none"></div>
+      <div class="ml" id="dloc"></div>
+      <div class="ma">
+        <button class="btn bc" onclick="closeDM()">閉じる</button>
+        <button class="btn be" onclick="openEdit()">✏️ 編集</button>
+        <button class="btn bd" onclick="delEntry()">🗑️</button>
       </div>
     </div>
   </div>
 </div>
-
-<!-- 編集モーダル -->
-<div id="edit-modal">
-  <div class="edit-sheet">
-    <div class="edit-title">✏️ 記録を編集</div>
-    <div class="field-group">
-      <div class="field-label">名前</div>
-      <input class="field-input" id="edit-name" placeholder="例：ソメイヨシノ"/>
-    </div>
-    <div class="field-group">
-      <div class="field-label">カテゴリ</div>
-      <div class="cat-row" id="edit-cats"></div>
-    </div>
-    <div class="field-group">
-      <div class="field-label">見つけた日</div>
-      <input class="field-input" type="date" id="edit-date"/>
-    </div>
-    <div class="field-group">
-      <div class="field-label">メモ</div>
-      <input class="field-input" id="edit-memo" placeholder="特徴など"/>
-    </div>
-    <div class="edit-actions">
-      <button class="btn-cancel" onclick="closeEdit()">キャンセル</button>
-      <button class="btn-save" onclick="saveEdit()">💾 保存</button>
+<div id="em">
+  <div class="es">
+    <div class="et2">✏️ 記録を編集</div>
+    <div class="fg"><div class="fl">名前</div><input class="fi2" id="ename" placeholder="例：ソメイヨシノ"/></div>
+    <div class="fg"><div class="fl">カテゴリ</div><div class="cr" id="ecats"></div></div>
+    <div class="fg"><div class="fl">見つけた日</div><input class="fi2" type="date" id="edate"/></div>
+    <div class="fg"><div class="fl">メモ</div><input class="fi2" id="ememo" placeholder="特徴など"/></div>
+    <div class="ea">
+      <button class="bnc" onclick="closeEdit()">キャンセル</button>
+      <button class="bns" onclick="saveEdit()">💾 保存</button>
     </div>
   </div>
 </div>
-
-<!-- トースト -->
 <div id="toast"></div>
-
-<!-- Google Maps -->
 <script>
-const MAPS_API_KEY = "AIzaSyDX9CyJmylG8WlkbEzJHz5daCPqw79ro1Y";
-const ANTHROPIC_KEY = ""; // Claude.ai経由なのでキー不要
-
-const SEASONS = [
-  {label:"すべて", value:"all", color:"#6b7280", bg:"#f3f4f6"},
-  {label:"🌸 春", value:"spring", months:[3,4,5], color:"#db2777", bg:"#fdf2f8"},
-  {label:"🌿 夏", value:"summer", months:[6,7,8], color:"#16a34a", bg:"#f0fdf4"},
-  {label:"🍂 秋", value:"autumn", months:[9,10,11], color:"#ea580c", bg:"#fff7ed"},
-  {label:"❄️ 冬", value:"winter", months:[12,1,2], color:"#2563eb", bg:"#eff6ff"},
+const GK="AIzaSyAYCjCqFQHnMGdx1RKOOVMAKUWLD2dgxEM";
+const MK="AIzaSyDX9CyJmylG8WlkbEzJHz5daCPqw79ro1Y";
+const SK="shizen-zukan-v3";
+const SEASONS=[
+  {label:"すべて",v:"all",color:"#6b7280",bg:"#f3f4f6"},
+  {label:"🌸 春",v:"spring",mo:[3,4,5],color:"#db2777",bg:"#fdf2f8"},
+  {label:"🌿 夏",v:"summer",mo:[6,7,8],color:"#16a34a",bg:"#f0fdf4"},
+  {label:"🍂 秋",v:"autumn",mo:[9,10,11],color:"#ea580c",bg:"#fff7ed"},
+  {label:"❄️ 冬",v:"winter",mo:[12,1,2],color:"#2563eb",bg:"#eff6ff"},
 ];
-const CATS = ["植物","動物","鳥","昆虫","魚","その他"];
-const CAT_ICON = {植物:"🌿",動物:"🐾",鳥:"🐦",昆虫:"🐛",魚:"🐟",その他:"📍"};
+const CATS=["植物","動物","鳥","昆虫","魚","その他"];
+const ICON={植物:"🌿",動物:"🐾",鳥:"🐦",昆虫:"🐛",魚:"🐟",その他:"📍"};
+let entries=[],curS="all",curT="list",gmap=null,markers={},selE=null,iw=null;
 
-let entries = [];
-let currentSeason = "all";
-let currentTab = "list";
-let googleMap = null;
-let mapMarkers = {};
-let selectedEntry = null;
-let infoWindow = null;
-
-// ── ストレージ ──
-async function loadEntries() {
-  try {
-    const r = await window.storage.get("zukan-pwa");
-    if (r?.value) entries = JSON.parse(r.value);
-  } catch(e) { entries = []; }
-  render();
+function load(){
+  try{const r=localStorage.getItem(SK);if(r)entries=JSON.parse(r);}catch(e){entries=[];}
 }
-async function saveEntries() {
-  try { await window.storage.set("zukan-pwa", JSON.stringify(entries)); } catch(e){}
+function save(){
+  try{localStorage.setItem(SK,JSON.stringify(entries));}
+  catch(e){
+    try{
+      const slim=entries.map((en,i)=>i<5?en:{...en,photoUrl:""});
+      localStorage.setItem(SK,JSON.stringify(slim));
+      toast("⚠️ 容量節約のため古い写真を省略しました","warn");
+    }catch(e2){console.error("保存失敗",e2);}
+  }
 }
-
-// ── シーズン ──
-function getSeason(dateStr) {
-  if (!dateStr) return null;
-  const m = new Date(dateStr).getMonth() + 1;
-  return SEASONS.find(s => s.months?.includes(m))?.value ?? null;
+function getSeason(d){
+  if(!d)return null;
+  const m=new Date(d).getMonth()+1;
+  return SEASONS.find(s=>s.mo&&s.mo.includes(m))?.v??null;
 }
-function getSeasonInfo(dateStr) {
-  return SEASONS.find(s => s.value === getSeason(dateStr)) ?? SEASONS[0];
+function getSInfo(d){return SEASONS.find(s=>s.v===getSeason(d))??SEASONS[0];}
+function buildSBar(){
+  document.getElementById("sbar").innerHTML=SEASONS.map(s=>
+    '<button class="sb '+(curS===s.v?'on':'')+'" style="'+(curS===s.v?'border-color:'+s.color+';background:'+s.bg+';color:'+s.color+';':'')+'" onclick="setSeason(\''+s.v+'\')">'+s.label+'</button>').join("");
 }
-
-// ── 季節バー ──
-function buildSeasonBar() {
-  const bar = document.getElementById("season-bar");
-  bar.innerHTML = SEASONS.map(s => `
-    <button class="s-btn ${currentSeason===s.value?'active':''}"
-      style="${currentSeason===s.value?`border-color:${s.color};background:${s.bg};color:${s.color};`:''}"
-      onclick="setSeason('${s.value}')">${s.label}</button>
-  `).join("");
+function setSeason(v){curS=v;render();}
+function switchTab(t){
+  curT=t;
+  document.querySelectorAll(".tb").forEach((b,i)=>b.classList.toggle("on",(i===0&&t==="list")||(i===1&&t==="map")));
+  document.getElementById("lv").classList.toggle("on",t==="list");
+  document.getElementById("mv").classList.toggle("on",t==="map");
+  if(t==="map")initMap();
 }
-function setSeason(v) { currentSeason = v; render(); }
-
-// ── タブ切替 ──
-function switchTab(tab) {
-  currentTab = tab;
-  document.querySelectorAll(".tab-btn").forEach((b,i) => b.classList.toggle("active", (i===0&&tab==="list")||(i===1&&tab==="map")));
-  document.getElementById("list-view").classList.toggle("active", tab==="list");
-  document.getElementById("map-view").classList.toggle("active", tab==="map");
-  if (tab==="map") initMap();
-}
-
-// ── Google Maps 初期化 ──
-function initMap() {
-  if (googleMap) { refreshMarkers(); return; }
-  googleMap = new google.maps.Map(document.getElementById("map"), {
-    center: {lat: 35.7024, lng: 139.5775}, // 井の頭公園
-    zoom: 15,
-    mapTypeControl: false,
-    streetViewControl: false,
-    fullscreenControl: false,
-    zoomControlOptions: { position: google.maps.ControlPosition.RIGHT_CENTER },
-    styles: [
-      {featureType:"poi.business",stylers:[{visibility:"off"}]},
-      {featureType:"transit",stylers:[{visibility:"off"}]},
-    ]
+function initMap(){
+  if(gmap){refreshMarkers();return;}
+  gmap=new google.maps.Map(document.getElementById("map"),{
+    center:{lat:35.7024,lng:139.5775},zoom:15,
+    mapTypeControl:false,streetViewControl:false,fullscreenControl:false,
+    styles:[{featureType:"poi.business",stylers:[{visibility:"off"}]},{featureType:"transit",stylers:[{visibility:"off"}]}]
   });
-  infoWindow = new google.maps.InfoWindow();
-  // マップクリックで手動追加
-  googleMap.addListener("click", async (e) => {
-    const lat = e.latLng.lat();
-    const lng = e.latLng.lng();
-    await addManualEntry(lat, lng);
-  });
+  iw=new google.maps.InfoWindow();
+  gmap.addListener("click",function(e){addManual(e.latLng.lat(),e.latLng.lng());});
   refreshMarkers();
 }
-
-function refreshMarkers() {
-  if (!googleMap) return;
-  // 既存マーカー削除
-  Object.values(mapMarkers).forEach(m => m.setMap(null));
-  mapMarkers = {};
-  const filtered = getFiltered();
-  filtered.forEach(entry => addMarker(entry));
+function refreshMarkers(){
+  if(!gmap)return;
+  Object.values(markers).forEach(function(m){m.setMap(null);});markers={};
+  filtered().forEach(function(en){addMarker(en);});
 }
-
-function addMarker(entry) {
-  if (!googleMap || !entry.lat || !entry.lng) return;
-  const s = getSeasonInfo(entry.date);
-  const icon = {
-    path: google.maps.SymbolPath.CIRCLE,
-    fillColor: s.color,
-    fillOpacity: 1,
-    strokeColor: "white",
-    strokeWeight: 2.5,
-    scale: 10,
-  };
-  const marker = new google.maps.Marker({
-    position: {lat: entry.lat, lng: entry.lng},
-    map: googleMap,
-    title: entry.name,
-    icon,
-    animation: google.maps.Animation.DROP,
+function addMarker(en){
+  if(!gmap||!en.lat||!en.lng)return;
+  var s=getSInfo(en.date);
+  var m=new google.maps.Marker({
+    position:{lat:en.lat,lng:en.lng},map:gmap,title:en.name,
+    icon:{path:google.maps.SymbolPath.CIRCLE,fillColor:s.color,fillOpacity:1,strokeColor:"white",strokeWeight:2.5,scale:10},
+    animation:google.maps.Animation.DROP
   });
-  marker.addListener("click", () => {
-    const content = `
-      <div class="gm-info">
-        ${entry.photoUrl ? `<img src="${entry.photoUrl}" style="width:100%;height:80px;object-fit:cover;border-radius:8px;margin-bottom:6px;"/>` : `<div style="font-size:28px;text-align:center;margin-bottom:4px;">${CAT_ICON[entry.category]??'📍'}</div>`}
-        <div class="name">${entry.name}</div>
-        <div class="date">📅 ${entry.date}</div>
-        <button class="open-btn" onclick="openDetail('${entry.id}')">詳細を見る</button>
-      </div>`;
-    infoWindow.setContent(content);
-    infoWindow.open(googleMap, marker);
+  m.addListener("click",function(){
+    iw.setContent('<div style="font-family:sans-serif;min-width:150px;padding:2px;">'
+      +(en.photoUrl?'<img src="'+en.photoUrl+'" style="width:100%;height:80px;object-fit:cover;border-radius:8px;margin-bottom:6px;display:block;"/>'
+        :'<div style="font-size:28px;text-align:center;margin-bottom:6px;">'+(ICON[en.category]||"📍")+'</div>')
+      +'<div style="font-weight:700;font-size:14px;margin-bottom:3px;">'+en.name+'</div>'
+      +'<div style="font-size:12px;color:#6b7280;margin-bottom:8px;">📅 '+en.date+'</div>'
+      +'<button onclick="openDM(\''+en.id+'\')" style="width:100%;padding:6px;border:none;border-radius:8px;background:#16a34a;color:white;font-size:12px;font-weight:600;cursor:pointer;">詳細を見る</button>'
+      +'</div>');
+    iw.open(gmap,m);
   });
-  mapMarkers[entry.id] = marker;
+  markers[en.id]=m;
 }
-
-// ── Exif GPS抽出 ──
-function extractExifGPS(buffer) {
-  try {
-    const view = new DataView(buffer);
-    if (view.getUint16(0) !== 0xFFD8) return null;
-    let offset = 2;
-    while (offset < view.byteLength - 4) {
-      const marker = view.getUint16(offset);
-      const len = view.getUint16(offset + 2);
-      if (marker === 0xFFE1) {
-        const header = String.fromCharCode(...new Uint8Array(buffer, offset+4, 6));
-        if (header.startsWith("Exif")) {
-          const tiff = offset + 10;
-          const le = view.getUint16(tiff) === 0x4949;
-          const ifd0 = view.getUint32(tiff+4, le);
-          const n = view.getUint16(tiff+ifd0, le);
-          let gpsIFDOffset = null;
-          for (let i = 0; i < n; i++) {
-            const e = tiff + ifd0 + 2 + i*12;
-            if (view.getUint16(e, le) === 0x8825) {
-              gpsIFDOffset = view.getUint32(e+8, le);
-            }
+function exifGPS(buf){
+  try{
+    var v=new DataView(buf);
+    if(v.getUint16(0)!==0xFFD8)return null;
+    var o=2;
+    while(o<v.byteLength-4){
+      var mk=v.getUint16(o),ln=v.getUint16(o+2);
+      if(mk===0xFFE1){
+        var hd=String.fromCharCode.apply(null,new Uint8Array(buf,o+4,6));
+        if(hd.startsWith("Exif")){
+          var tf=o+10,le=v.getUint16(tf)===0x4949;
+          var i0=v.getUint32(tf+4,le),n=v.getUint16(tf+i0,le),goff=null;
+          for(var i=0;i<n;i++){var e=tf+i0+2+i*12;if(v.getUint16(e,le)===0x8825)goff=v.getUint32(e+8,le);}
+          if(goff===null)return null;
+          var gn=v.getUint16(tf+goff,le),lR,lD,nR,nD;
+          for(var i=0;i<gn;i++){
+            var e=tf+goff+2+i*12,tag=v.getUint16(e,le),vo=v.getUint32(e+8,le);
+            var dms=function(vo2){return [0,1,2].map(function(j){var a=v.getUint32(tf+vo2+j*8,le),b=v.getUint32(tf+vo2+j*8+4,le);return b?a/b:0;});};
+            if(tag===1)lR=String.fromCharCode(new Uint8Array(buf,tf+vo,1)[0]);
+            if(tag===3)nR=String.fromCharCode(new Uint8Array(buf,tf+vo,1)[0]);
+            if(tag===2)lD=dms(vo);
+            if(tag===4)nD=dms(vo);
           }
-          if (gpsIFDOffset !== null) {
-            const gn = view.getUint16(tiff+gpsIFDOffset, le);
-            let latRef,latDMS,lngRef,lngDMS;
-            for (let i = 0; i < gn; i++) {
-              const e = tiff + gpsIFDOffset + 2 + i*12;
-              const tag = view.getUint16(e, le);
-              const count = view.getUint32(e+4, le);
-              const valOff = view.getUint32(e+8, le);
-              if (tag === 1) latRef = String.fromCharCode(new Uint8Array(buffer, tiff+valOff, 1)[0]);
-              if (tag === 3) lngRef = String.fromCharCode(new Uint8Array(buffer, tiff+valOff, 1)[0]);
-              if (tag === 2) {
-                latDMS = [0,1,2].map(j => {
-                  const n = view.getUint32(tiff+valOff+j*8, le);
-                  const d = view.getUint32(tiff+valOff+j*8+4, le);
-                  return n/d;
-                });
-              }
-              if (tag === 4) {
-                lngDMS = [0,1,2].map(j => {
-                  const n = view.getUint32(tiff+valOff+j*8, le);
-                  const d = view.getUint32(tiff+valOff+j*8+4, le);
-                  return n/d;
-                });
-              }
-            }
-            if (latDMS && lngDMS) {
-              let lat = latDMS[0] + latDMS[1]/60 + latDMS[2]/3600;
-              let lng = lngDMS[0] + lngDMS[1]/60 + lngDMS[2]/3600;
-              if (latRef==="S") lat = -lat;
-              if (lngRef==="W") lng = -lng;
-              return {lat, lng};
-            }
-          }
+          if(!lD||!nD)return null;
+          var lat=lD[0]+lD[1]/60+lD[2]/3600,lng=nD[0]+nD[1]/60+nD[2]/3600;
+          if(lR==="S")lat=-lat;if(nR==="W")lng=-lng;
+          if(isNaN(lat)||lat===0)return null;
+          return {lat:lat,lng:lng};
         }
       }
-      offset += 2 + len;
+      if(ln<2)break;o+=2+ln;
     }
-  } catch(e){}
+  }catch(e){}
   return null;
 }
-
-// ── Exif 日付 ──
-function extractExifDate(buffer) {
-  try {
-    const view = new DataView(buffer);
-    if (view.getUint16(0) !== 0xFFD8) return null;
-    let offset = 2;
-    while (offset < view.byteLength - 4) {
-      const marker = view.getUint16(offset);
-      const len = view.getUint16(offset + 2);
-      if (marker === 0xFFE1) {
-        const header = String.fromCharCode(...new Uint8Array(buffer, offset+4, 6));
-        if (header.startsWith("Exif")) {
-          const tiff = offset + 10;
-          const le = view.getUint16(tiff) === 0x4949;
-          const ifd = view.getUint32(tiff+4, le);
-          const n = view.getUint16(tiff+ifd, le);
-          for (let i = 0; i < n; i++) {
-            const e = tiff + ifd + 2 + i*12;
-            const tag = view.getUint16(e, le);
-            if (tag === 0x9003 || tag === 0x0132) {
-              const vo = view.getUint32(e+8, le);
-              const ds = String.fromCharCode(...new Uint8Array(buffer, tiff+vo, 19));
+function exifDate(buf){
+  try{
+    var v=new DataView(buf);
+    if(v.getUint16(0)!==0xFFD8)return null;
+    var o=2;
+    while(o<v.byteLength-4){
+      var mk=v.getUint16(o),ln=v.getUint16(o+2);
+      if(mk===0xFFE1){
+        var hd=String.fromCharCode.apply(null,new Uint8Array(buf,o+4,6));
+        if(hd.startsWith("Exif")){
+          var tf=o+10,le=v.getUint16(tf)===0x4949;
+          var i0=v.getUint32(tf+4,le),n=v.getUint16(tf+i0,le);
+          for(var i=0;i<n;i++){
+            var e=tf+i0+2+i*12,tag=v.getUint16(e,le);
+            if(tag===0x9003||tag===0x0132){
+              var vo=v.getUint32(e+8,le);
+              var ds=String.fromCharCode.apply(null,new Uint8Array(buf,tf+vo,19));
               return ds.split(" ")[0].replace(/:/g,"-");
             }
           }
         }
       }
-      offset += 2 + len;
+      if(ln<2)break;o+=2+ln;
     }
-  } catch(e){}
+  }catch(e){}
   return null;
 }
-
-// ── Claude API で識別 ──
-async function identifyWithClaude(base64, mediaType) {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 1000,
-      system: `あなたは生物・植物の識別専門家です。写真を見て種名まで特定し、JSON形式のみで返答してください（マークダウン不要）。
-形式: {"name":"種名","category":"植物or動物or鳥or昆虫or魚orその他","confidence":"high or medium or low","memo":"特徴一言(40文字以内)"}
-特定できない場合は「○○の仲間」、生物がいない場合はname「不明」。`,
-      messages: [{role:"user", content:[
-        {type:"image", source:{type:"base64", media_type:mediaType, data:base64}},
-        {type:"text", text:"この写真に写っている生き物・植物を識別してください。"}
-      ]}]
+async function identify(b64,mime){
+  var url="https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key="+GK;
+  var res=await fetch(url,{
+    method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      contents:[{parts:[
+        {inline_data:{mime_type:mime,data:b64}},
+        {text:"この写真に写っている生き物・植物を識別してください。必ずJSON形式のみで返答し、マークダウン記法は使わないでください。形式: {\"name\":\"種名（例：カンパニュラ、ソメイヨシノ、カワセミ）\",\"category\":\"植物 or 動物 or 鳥 or 昆虫 or 魚 or その他\",\"memo\":\"特徴や見分け方など一言（40文字以内）\"} 種名が特定できない場合は「○○の仲間」と記載。生物がいない場合はname「不明」。"}
+      ]}],
+      generationConfig:{temperature:0.1,maxOutputTokens:300}
     })
   });
-  const data = await res.json();
-  const text = data.content?.find(b=>b.type==="text")?.text ?? "{}";
-  return JSON.parse(text.replace(/```json|```/g,"").trim());
+  if(!res.ok)throw new Error("Gemini "+res.status);
+  var d=await res.json();
+  var txt=(d.candidates&&d.candidates[0]&&d.candidates[0].content&&d.candidates[0].content.parts&&d.candidates[0].content.parts[0]&&d.candidates[0].content.parts[0].text)||"{}";
+  return JSON.parse(txt.replace(/```json|```/g,"").trim());
 }
-
-// ── 写真アップロード → 自動保存 ──
-document.getElementById("fab-input").addEventListener("change", async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  e.target.value = "";
-
-  document.getElementById("analyzing-overlay").classList.add("active");
-  document.getElementById("fab").classList.add("loading");
-  document.getElementById("fab").textContent = "⏳";
-
-  try {
-    // base64
-    const base64 = await new Promise((res,rej) => {
-      const r = new FileReader();
-      r.onload = () => res(r.result.split(",")[1]);
-      r.onerror = rej;
-      r.readAsDataURL(file);
+document.getElementById("fi").addEventListener("change",async function(e){
+  var file=e.target.files[0];if(!file)return;
+  e.target.value="";
+  document.getElementById("ov").classList.add("on");
+  document.getElementById("fab").classList.add("ld");
+  document.getElementById("fab").textContent="⏳";
+  try{
+    var b64=await new Promise(function(res,rej){
+      var r=new FileReader();
+      r.onload=function(){res(r.result.split(",")[1]);};
+      r.onerror=rej;r.readAsDataURL(file);
     });
-    const photoUrl = `data:${file.type};base64,${base64}`;
-
-    // Exif
-    const buf = await file.arrayBuffer();
-    const exifDate = extractExifDate(buf);
-    const exifGPS  = extractExifGPS(buf);
-    const date = exifDate ?? new Date().toISOString().slice(0,10);
-
-    // 位置
-    let lat = exifGPS?.lat ?? 35.7024;
-    let lng = exifGPS?.lng ?? 139.5775;
-    // GPS取れなかった場合は現在地を試みる
-    if (!exifGPS) {
-      try {
-        const pos = await new Promise((res,rej) => navigator.geolocation.getCurrentPosition(res,rej,{timeout:3000}));
-        lat = pos.coords.latitude;
-        lng = pos.coords.longitude;
-      } catch(e) {}
+    var photoUrl="data:"+file.type+";base64,"+b64;
+    var buf=await file.arrayBuffer();
+    var eD=exifDate(buf),eG=exifGPS(buf);
+    var date=eD||new Date().toISOString().slice(0,10);
+    var lat=null,lng=null,gpsSrc="";
+    if(eG){lat=eG.lat;lng=eG.lng;gpsSrc="photo";}
+    else{
+      try{
+        var pos=await new Promise(function(res,rej){navigator.geolocation.getCurrentPosition(res,rej,{timeout:5000,enableHighAccuracy:true});});
+        lat=pos.coords.latitude;lng=pos.coords.longitude;gpsSrc="current";
+      }catch(_){lat=35.7024;lng=139.5775;gpsSrc="default";}
     }
-
-    // Claude識別
-    let name="不明", category="その他", memo="";
-    try {
-      const r = await identifyWithClaude(base64, file.type||"image/jpeg");
-      name = r.name ?? "不明";
-      category = r.category ?? "その他";
-      memo = r.memo ?? "";
-    } catch(e) { showToast("AI識別に失敗しました","error"); }
-
-    const entry = {
-      id: Date.now().toString(),
-      name, category, date, memo, photoUrl,
-      lat, lng, aiGenerated: true
-    };
-    entries.unshift(entry);
-    await saveEntries();
-    render();
-    showToast(`✅ 「${name}」を登録しました！`);
-    // マップに切替して確認
+    var name="不明",category="その他",memo="";
+    try{
+      var r=await identify(b64,file.type||"image/jpeg");
+      name=r.name||"不明";category=r.category||"その他";memo=r.memo||"";
+    }catch(err){console.error("Gemini error:",err);toast("AI識別失敗。手動で名前を入力してください","warn");}
+    var en={id:Date.now().toString(),name:name,category:category,date:date,memo:memo,photoUrl:photoUrl,lat:lat,lng:lng,gpsSrc:gpsSrc,ai:true};
+    entries.unshift(en);save();render();
+    var gMsg=gpsSrc==="photo"?"📍 写真のGPS情報を使用":gpsSrc==="current"?"📍 現在地を使用":"📍 マップで位置を調整してください";
+    toast("✅ 「"+name+"」を登録！ "+gMsg);
     switchTab("map");
-    if (googleMap) {
-      googleMap.setCenter({lat, lng});
-      googleMap.setZoom(17);
-    }
-  } catch(e) {
-    showToast("エラーが発生しました","error");
-  } finally {
-    document.getElementById("analyzing-overlay").classList.remove("active");
-    document.getElementById("fab").classList.remove("loading");
-    document.getElementById("fab").textContent = "📷";
+    if(gmap){gmap.setCenter({lat:lat,lng:lng});gmap.setZoom(17);}
+  }catch(err){console.error(err);toast("エラーが発生しました","err");}
+  finally{
+    document.getElementById("ov").classList.remove("on");
+    document.getElementById("fab").classList.remove("ld");
+    document.getElementById("fab").textContent="📷";
   }
 });
-
-// ── 手動追加（マップタップ）──
-async function addManualEntry(lat, lng) {
-  const entry = {
-    id: Date.now().toString(),
-    name:"名称未設定", category:"その他",
-    date: new Date().toISOString().slice(0,10),
-    memo:"", photoUrl:"", lat, lng, aiGenerated:false
-  };
-  entries.unshift(entry);
-  await saveEntries();
-  render();
-  selectedEntry = entry;
-  openEdit();
+async function addManual(lat,lng){
+  var en={id:Date.now().toString(),name:"名称未設定",category:"その他",date:new Date().toISOString().slice(0,10),memo:"",photoUrl:"",lat:lat,lng:lng,gpsSrc:"manual",ai:false};
+  entries.unshift(en);save();render();selE=en;openEdit();
 }
-
-// ── フィルター ──
-function getFiltered() {
-  return entries.filter(e => currentSeason==="all" || getSeason(e.date)===currentSeason);
+function filtered(){return entries.filter(function(e){return curS==="all"||getSeason(e.date)===curS;});}
+function render(){
+  document.getElementById("cnum").textContent=entries.length;
+  buildSBar();buildList(filtered());refreshMarkers();
 }
-
-// ── レンダリング ──
-function render() {
-  const filtered = getFiltered();
-  document.getElementById("count-num").textContent = entries.length;
-  buildSeasonBar();
-  buildList(filtered);
-  refreshMarkers();
-}
-
-function buildList(filtered) {
-  const el = document.getElementById("entry-list");
-  if (filtered.length === 0) {
-    el.innerHTML = `<div class="empty-state">
-      <div class="icon">🌱</div>
-      <div class="title">まだ記録がありません</div>
-      <div class="desc">📷ボタンから写真を追加しよう</div>
-    </div>`;
+function buildList(list){
+  var el=document.getElementById("elist");
+  if(!list.length){
+    el.innerHTML='<div class="empty"><div class="ei">🌱</div><div class="et">まだ記録がありません</div><div class="ed">📷ボタンから写真フォルダの写真を追加しよう</div></div>';
     return;
   }
-  el.innerHTML = filtered.map(e => {
-    const s = getSeasonInfo(e.date);
-    return `<div class="entry-card" onclick="openDetail('${e.id}')">
-      ${e.photoUrl
-        ? `<img class="card-img" src="${e.photoUrl}" alt="${e.name}"/>`
-        : `<div class="card-img-placeholder">${CAT_ICON[e.category]??'📍'}</div>`}
-      <div class="card-body">
-        <div class="card-name">${e.name}</div>
-        <div class="card-tags">
-          <span class="tag tag-cat">${e.category}</span>
-          <span class="tag tag-season" style="background:${s.bg};color:${s.color};border-color:${s.color}44">${s.label}</span>
-          ${e.aiGenerated?`<span class="tag tag-ai">🤖 AI識別</span>`:''}
-        </div>
-        <div class="card-date">📅 ${e.date}</div>
-        ${e.memo?`<div class="card-memo">${e.memo}</div>`:''}
-      </div>
-    </div>`;
+  el.innerHTML=list.map(function(e){
+    var s=getSInfo(e.date);
+    return '<div class="card" onclick="openDM(\''+e.id+'\')">'+
+      (e.photoUrl?'<img class="ci" src="'+e.photoUrl+'" alt="'+e.name+'"/>'
+        :'<div class="cp">'+(ICON[e.category]||"📍")+'</div>')+
+      '<div class="cb">'+
+        '<div class="cn">'+e.name+'</div>'+
+        '<div class="ct">'+
+          '<span class="tg tg-c">'+e.category+'</span>'+
+          '<span class="tg tg-s" style="background:'+s.bg+';color:'+s.color+';border-color:'+s.color+'44">'+s.label+'</span>'+
+          (e.ai?'<span class="tg tg-a">🤖 AI</span>':"")+
+        '</div>'+
+        '<div class="cd">📅 '+e.date+'</div>'+
+        (e.memo?'<div class="cm">'+e.memo+'</div>':"")+
+      '</div></div>';
   }).join("");
 }
-
-// ── 詳細モーダル ──
-function openDetail(id) {
-  selectedEntry = entries.find(e => e.id === id);
-  if (!selectedEntry) return;
-  const e = selectedEntry;
-  const s = getSeasonInfo(e.date);
-  document.getElementById("modal-photo-area").innerHTML = e.photoUrl
-    ? `<img class="modal-photo" src="${e.photoUrl}" alt="${e.name}"/>`
-    : `<div class="modal-photo-placeholder">${CAT_ICON[e.category]??'📍'}</div>`;
-  document.getElementById("modal-name").textContent = e.name;
-  document.getElementById("modal-tags").innerHTML = `
-    <span class="tag tag-cat">${e.category}</span>
-    <span class="tag tag-season" style="background:${s.bg};color:${s.color};border-color:${s.color}44">${s.label}</span>
-    ${e.aiGenerated?`<span class="tag tag-ai">🤖 AI識別</span>`:''}`;
-  document.getElementById("modal-date").textContent = `📅 ${e.date}`;
-  const memoEl = document.getElementById("modal-memo");
-  if (e.memo) { memoEl.textContent = e.memo; memoEl.style.display="block"; }
-  else memoEl.style.display="none";
-  document.getElementById("modal-loc").textContent = e.lat ? `📍 ${e.lat.toFixed(5)}, ${e.lng.toFixed(5)}` : "";
-  document.getElementById("detail-modal").classList.add("active");
+function openDM(id){
+  selE=entries.find(function(e){return e.id===id;});if(!selE)return;
+  var e=selE,s=getSInfo(e.date);
+  document.getElementById("dphoto").innerHTML=e.photoUrl
+    ?'<img class="mp" src="'+e.photoUrl+'" alt="'+e.name+'"/>'
+    :'<div class="mpp">'+(ICON[e.category]||"📍")+'</div>';
+  document.getElementById("dname").textContent=e.name;
+  document.getElementById("dtags").innerHTML=
+    '<span class="tg tg-c">'+e.category+'</span>'+
+    '<span class="tg tg-s" style="background:'+s.bg+';color:'+s.color+';border-color:'+s.color+'44">'+s.label+'</span>'+
+    (e.ai?'<span class="tg tg-a">🤖 AI識別</span>':"");
+  document.getElementById("ddate").textContent="📅 "+e.date;
+  var mm=document.getElementById("dmemo");
+  if(e.memo){mm.textContent=e.memo;mm.style.display="block";}else mm.style.display="none";
+  var ll=e.lat?"📍 "+e.lat.toFixed(5)+", "+e.lng.toFixed(5)+(e.gpsSrc==="default"?" (位置未取得・マップで調整)":e.gpsSrc==="current"?" (現在地)":e.gpsSrc==="photo"?" (写真GPS)":""):"";
+  document.getElementById("dloc").textContent=ll;
+  document.getElementById("dm").classList.add("on");
 }
-function closeDetail(event) {
-  if (event && event.target !== document.getElementById("detail-modal")) return;
-  document.getElementById("detail-modal").classList.remove("active");
-  if (infoWindow) infoWindow.close();
+function closeDMBg(ev){if(ev.target===document.getElementById("dm"))closeDM();}
+function closeDM(){document.getElementById("dm").classList.remove("on");if(iw)iw.close();}
+function delEntry(){
+  if(!selE)return;
+  entries=entries.filter(function(e){return e.id!==selE.id;});
+  save();closeDM();selE=null;render();
+  toast("🗑️ 削除しました","warn");
 }
-
-// ── 削除 ──
-async function deleteEntry() {
-  if (!selectedEntry) return;
-  entries = entries.filter(e => e.id !== selectedEntry.id);
-  await saveEntries();
-  document.getElementById("detail-modal").classList.remove("active");
-  selectedEntry = null;
-  render();
-  showToast("🗑️ 削除しました","warn");
+function openEdit(){
+  if(!selE)return;
+  document.getElementById("ename").value=selE.name;
+  document.getElementById("edate").value=selE.date;
+  document.getElementById("ememo").value=selE.memo||"";
+  document.getElementById("ecats").innerHTML=CATS.map(function(c){
+    return '<button class="cb2 '+(selE.category===c?'on':'')+'" onclick="selCat(this,\''+c+'\')">'+ICON[c]+" "+c+'</button>';
+  }).join("");
+  closeDM();
+  document.getElementById("em").classList.add("on");
 }
-
-// ── 編集モーダル ──
-function openEdit() {
-  if (!selectedEntry) return;
-  document.getElementById("edit-name").value = selectedEntry.name;
-  document.getElementById("edit-date").value = selectedEntry.date;
-  document.getElementById("edit-memo").value = selectedEntry.memo || "";
-  const catRow = document.getElementById("edit-cats");
-  catRow.innerHTML = CATS.map(c =>
-    `<button class="cat-btn ${selectedEntry.category===c?'active':''}" onclick="selectCat(this,'${c}')">${CAT_ICON[c]} ${c}</button>`
-  ).join("");
-  document.getElementById("detail-modal").classList.remove("active");
-  document.getElementById("edit-modal").classList.add("active");
+function selCat(btn,cat){
+  document.querySelectorAll(".cb2").forEach(function(b){b.classList.remove("on");});
+  btn.classList.add("on");if(selE)selE.category=cat;
 }
-function selectCat(btn, cat) {
-  document.querySelectorAll(".cat-btn").forEach(b=>b.classList.remove("active"));
-  btn.classList.add("active");
-  if (selectedEntry) selectedEntry.category = cat;
+function closeEdit(){document.getElementById("em").classList.remove("on");}
+function saveEdit(){
+  if(!selE)return;
+  selE.name=document.getElementById("ename").value||"名称未設定";
+  selE.date=document.getElementById("edate").value;
+  selE.memo=document.getElementById("ememo").value;
+  var i=entries.findIndex(function(e){return e.id===selE.id;});
+  if(i>=0)entries[i]=Object.assign({},selE);
+  save();closeEdit();render();toast("💾 保存しました");
 }
-function closeEdit() {
-  document.getElementById("edit-modal").classList.remove("active");
+function toast(msg,type){
+  type=type||"ok";
+  var t=document.getElementById("toast");
+  t.textContent=msg;
+  t.style.background=type==="err"?"#fee2e2":type==="warn"?"#fff7ed":"#f0fdf4";
+  t.style.color=type==="err"?"#dc2626":type==="warn"?"#ea580c":"#16a34a";
+  t.style.border="1.5px solid "+(type==="err"?"#fca5a5":type==="warn"?"#fed7aa":"#bbf7d0");
+  t.classList.add("on");
+  setTimeout(function(){t.classList.remove("on");},3500);
 }
-async function saveEdit() {
-  if (!selectedEntry) return;
-  selectedEntry.name = document.getElementById("edit-name").value || "名称未設定";
-  selectedEntry.date = document.getElementById("edit-date").value;
-  selectedEntry.memo = document.getElementById("edit-memo").value;
-  const idx = entries.findIndex(e=>e.id===selectedEntry.id);
-  if (idx>=0) entries[idx] = {...selectedEntry};
-  await saveEntries();
-  closeEdit();
-  render();
-  showToast("💾 保存しました");
+if("serviceWorker"in navigator){
+  navigator.serviceWorker.register("sw.js").catch(function(e){console.log("SW:",e);});
 }
-
-// ── トースト ──
-function showToast(msg, type="success") {
-  const t = document.getElementById("toast");
-  t.textContent = msg;
-  t.style.background = type==="error"?"#fee2e2":type==="warn"?"#fff7ed":"#f0fdf4";
-  t.style.color = type==="error"?"#dc2626":type==="warn"?"#ea580c":"#16a34a";
-  t.style.border = `1.5px solid ${type==="error"?"#fca5a5":type==="warn"?"#fed7aa":"#bbf7d0"}`;
-  t.classList.add("show");
-  setTimeout(()=>t.classList.remove("show"), 3000);
-}
-
-// ── 起動 ──
-window.addEventListener("load", async () => {
-  await loadEntries();
-});
+load();render();
 </script>
-
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDX9CyJmylG8WlkbEzJHz5daCPqw79ro1Y&language=ja&region=JP" async defer></script>
-
 </body>
 </html>
