@@ -65,7 +65,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--gp);color:#1c1917;mi
 .mpp{height:110px;display:flex;align-items:center;justify-content:center;font-size:52px;background:var(--gp);}
 .mbd{padding:18px 20px;}
 .mn{font-weight:800;font-size:20px;margin-bottom:6px;}
-.mt{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+.mt2{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
 .mdt{font-size:13px;color:#6b7280;margin-bottom:8px;}
 .mm{font-size:14px;color:#374151;background:#f9fafb;border-radius:8px;padding:10px 12px;margin-bottom:12px;}
 .ml{font-size:12px;color:#6b7280;margin-bottom:14px;}
@@ -119,7 +119,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--gp);color:#1c1917;mi
     <div id="dphoto"></div>
     <div class="mbd">
       <div class="mn" id="dname"></div>
-      <div class="mt" id="dtags"></div>
+      <div class="mt2" id="dtags"></div>
       <div class="mdt" id="ddate"></div>
       <div class="mm" id="dmemo" style="display:none"></div>
       <div class="ml" id="dloc"></div>
@@ -145,54 +145,103 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--gp);color:#1c1917;mi
   </div>
 </div>
 <div id="toast"></div>
-<script>
-const GK="AIzaSyAYCjCqFQHnMGdx1RKOOVMAKUWLD2dgxEM";
-const MK="AIzaSyDX9CyJmylG8WlkbEzJHz5daCPqw79ro1Y";
-const SK="shizen-zukan-v3";
-const SEASONS=[
-  {label:"すべて",v:"all",color:"#6b7280",bg:"#f3f4f6"},
-  {label:"🌸 春",v:"spring",mo:[3,4,5],color:"#db2777",bg:"#fdf2f8"},
-  {label:"🌿 夏",v:"summer",mo:[6,7,8],color:"#16a34a",bg:"#f0fdf4"},
-  {label:"🍂 秋",v:"autumn",mo:[9,10,11],color:"#ea580c",bg:"#fff7ed"},
-  {label:"❄️ 冬",v:"winter",mo:[12,1,2],color:"#2563eb",bg:"#eff6ff"},
-];
-const CATS=["植物","動物","鳥","昆虫","魚","その他"];
-const ICON={植物:"🌿",動物:"🐾",鳥:"🐦",昆虫:"🐛",魚:"🐟",その他:"📍"};
-let entries=[],curS="all",curT="list",gmap=null,markers={},selE=null,iw=null;
 
-function load(){
-  try{const r=localStorage.getItem(SK);if(r)entries=JSON.parse(r);}catch(e){entries=[];}
+<script>
+// ══════════════════════════════════════
+// 設定
+// ══════════════════════════════════════
+// Apps Script URL（Gemini中継サーバー）
+var PROXY = "https://script.google.com/macros/s/AKfycbzkgc57ZB39a2rOweln-nhDgjI-n_HhJN229gXk8opS4hjRNGyohuW0zggFMKgRzVc/exec";
+var MK = "AIzaSyDX9CyJmylG8WlkbEzJHz5daCPqw79ro1Y";
+var SK = "shizen_v5";
+
+var SEASONS = [
+  {label:"すべて", v:"all",    color:"#6b7280", bg:"#f3f4f6"},
+  {label:"🌸 春", v:"spring", mo:[3,4,5],   color:"#db2777", bg:"#fdf2f8"},
+  {label:"🌿 夏", v:"summer", mo:[6,7,8],   color:"#16a34a", bg:"#f0fdf4"},
+  {label:"🍂 秋", v:"autumn", mo:[9,10,11], color:"#ea580c", bg:"#fff7ed"},
+  {label:"❄️ 冬",v:"winter", mo:[12,1,2],  color:"#2563eb", bg:"#eff6ff"},
+];
+var CATS = ["植物","動物","鳥","昆虫","魚","その他"];
+var ICON = {植物:"🌿",動物:"🐾",鳥:"🐦",昆虫:"🐛",魚:"🐟",その他:"📍"};
+
+var entries=[], curS="all", curT="list";
+var gmap=null, markers={}, selE=null, iw=null, mapsReady=false;
+
+// ══════════════════════════════════════
+// localStorage（圧縮写真で保存）
+// ══════════════════════════════════════
+function load() {
+  try { var r=localStorage.getItem(SK); if(r) entries=JSON.parse(r); } catch(e) { entries=[]; }
 }
-function save(){
-  try{localStorage.setItem(SK,JSON.stringify(entries));}
-  catch(e){
-    try{
-      const slim=entries.map((en,i)=>i<5?en:{...en,photoUrl:""});
-      localStorage.setItem(SK,JSON.stringify(slim));
-      toast("⚠️ 容量節約のため古い写真を省略しました","warn");
-    }catch(e2){console.error("保存失敗",e2);}
+function save() {
+  try { localStorage.setItem(SK, JSON.stringify(entries)); }
+  catch(e) { toast("⚠️ 保存容量不足。古いデータを削除してください","warn"); }
+}
+
+// 写真を400px・JPEG70%に圧縮
+function compressPhoto(dataUrl, cb) {
+  var img = new Image();
+  img.onload = function() {
+    var c = document.createElement("canvas");
+    var MAX=400, w=img.width, h=img.height;
+    if (w>h){ if(w>MAX){h=h*MAX/w;w=MAX;} } else { if(h>MAX){w=w*MAX/h;h=MAX;} }
+    c.width=w; c.height=h;
+    c.getContext("2d").drawImage(img,0,0,w,h);
+    cb(c.toDataURL("image/jpeg",0.7));
+  };
+  img.src = dataUrl;
+}
+
+// ══════════════════════════════════════
+// シーズン
+// ══════════════════════════════════════
+function getSeason(d) {
+  if (!d) return null;
+  var m = new Date(d).getMonth()+1;
+  for (var i=0;i<SEASONS.length;i++) { if(SEASONS[i].mo&&SEASONS[i].mo.indexOf(m)>=0) return SEASONS[i].v; }
+  return null;
+}
+function getSInfo(d) {
+  var v=getSeason(d);
+  for (var i=0;i<SEASONS.length;i++) { if(SEASONS[i].v===v) return SEASONS[i]; }
+  return SEASONS[0];
+}
+function buildSBar() {
+  var h="";
+  for (var i=0;i<SEASONS.length;i++) {
+    var s=SEASONS[i], st=curS===s.v?"border-color:"+s.color+";background:"+s.bg+";color:"+s.color+";":"";
+    h+='<button class="sb '+(curS===s.v?"on":"")+'" style="'+st+'" onclick="setSeason(\''+s.v+'\')">'+s.label+'</button>';
   }
-}
-function getSeason(d){
-  if(!d)return null;
-  const m=new Date(d).getMonth()+1;
-  return SEASONS.find(s=>s.mo&&s.mo.includes(m))?.v??null;
-}
-function getSInfo(d){return SEASONS.find(s=>s.v===getSeason(d))??SEASONS[0];}
-function buildSBar(){
-  document.getElementById("sbar").innerHTML=SEASONS.map(s=>
-    '<button class="sb '+(curS===s.v?'on':'')+'" style="'+(curS===s.v?'border-color:'+s.color+';background:'+s.bg+';color:'+s.color+';':'')+'" onclick="setSeason(\''+s.v+'\')">'+s.label+'</button>').join("");
+  document.getElementById("sbar").innerHTML=h;
 }
 function setSeason(v){curS=v;render();}
-function switchTab(t){
+
+// ══════════════════════════════════════
+// タブ
+// ══════════════════════════════════════
+function switchTab(t) {
   curT=t;
-  document.querySelectorAll(".tb").forEach((b,i)=>b.classList.toggle("on",(i===0&&t==="list")||(i===1&&t==="map")));
+  var tabs=document.querySelectorAll(".tb");
+  tabs[0].classList.toggle("on",t==="list");
+  tabs[1].classList.toggle("on",t==="map");
   document.getElementById("lv").classList.toggle("on",t==="list");
   document.getElementById("mv").classList.toggle("on",t==="map");
-  if(t==="map")initMap();
+  if (t==="map") {
+    if (mapsReady) initMap();
+    else { var n=0; var w=setInterval(function(){ n++; if(typeof google!=="undefined"&&google.maps){clearInterval(w);mapsReady=true;initMap();} if(n>30)clearInterval(w); },500); }
+  }
 }
-function initMap(){
-  if(gmap){refreshMarkers();return;}
+
+// ══════════════════════════════════════
+// Google Maps
+// ══════════════════════════════════════
+function onMapsLoaded() {
+  mapsReady=true;
+  if (curT==="map") initMap();
+}
+function initMap() {
+  if (gmap){refreshMarkers();return;}
   gmap=new google.maps.Map(document.getElementById("map"),{
     center:{lat:35.7024,lng:139.5775},zoom:15,
     mapTypeControl:false,streetViewControl:false,fullscreenControl:false,
@@ -202,170 +251,223 @@ function initMap(){
   gmap.addListener("click",function(e){addManual(e.latLng.lat(),e.latLng.lng());});
   refreshMarkers();
 }
-function refreshMarkers(){
-  if(!gmap)return;
-  Object.values(markers).forEach(function(m){m.setMap(null);});markers={};
-  filtered().forEach(function(en){addMarker(en);});
+function refreshMarkers() {
+  if (!gmap) return;
+  for (var id in markers) markers[id].setMap(null);
+  markers={};
+  var list=filtered();
+  for (var i=0;i<list.length;i++) addMarker(list[i]);
 }
-function addMarker(en){
-  if(!gmap||!en.lat||!en.lng)return;
+function addMarker(en) {
+  if (!gmap||!en.lat||!en.lng) return;
   var s=getSInfo(en.date);
   var m=new google.maps.Marker({
     position:{lat:en.lat,lng:en.lng},map:gmap,title:en.name,
     icon:{path:google.maps.SymbolPath.CIRCLE,fillColor:s.color,fillOpacity:1,strokeColor:"white",strokeWeight:2.5,scale:10},
     animation:google.maps.Animation.DROP
   });
-  m.addListener("click",function(){
-    iw.setContent('<div style="font-family:sans-serif;min-width:150px;padding:2px;">'
-      +(en.photoUrl?'<img src="'+en.photoUrl+'" style="width:100%;height:80px;object-fit:cover;border-radius:8px;margin-bottom:6px;display:block;"/>'
-        :'<div style="font-size:28px;text-align:center;margin-bottom:6px;">'+(ICON[en.category]||"📍")+'</div>')
-      +'<div style="font-weight:700;font-size:14px;margin-bottom:3px;">'+en.name+'</div>'
-      +'<div style="font-size:12px;color:#6b7280;margin-bottom:8px;">📅 '+en.date+'</div>'
-      +'<button onclick="openDM(\''+en.id+'\')" style="width:100%;padding:6px;border:none;border-radius:8px;background:#16a34a;color:white;font-size:12px;font-weight:600;cursor:pointer;">詳細を見る</button>'
-      +'</div>');
-    iw.open(gmap,m);
-  });
+  (function(entry){
+    m.addListener("click",function(){
+      iw.setContent(
+        '<div style="font-family:sans-serif;min-width:150px;padding:2px;">'
+        +(entry.photoUrl?'<img src="'+entry.photoUrl+'" style="width:100%;height:80px;object-fit:cover;border-radius:8px;margin-bottom:6px;display:block;"/>':'<div style="font-size:28px;text-align:center;margin-bottom:6px;">'+(ICON[entry.category]||"📍")+'</div>')
+        +'<div style="font-weight:700;font-size:14px;margin-bottom:3px;">'+entry.name+'</div>'
+        +'<div style="font-size:12px;color:#6b7280;margin-bottom:8px;">📅 '+entry.date+'</div>'
+        +'<button onclick="openDM(\''+entry.id+'\')" style="width:100%;padding:6px;border:none;border-radius:8px;background:#16a34a;color:white;font-size:12px;font-weight:600;cursor:pointer;">詳細を見る</button>'
+        +'</div>'
+      );
+      iw.open(gmap,m);
+    });
+  })(en);
   markers[en.id]=m;
 }
-function exifGPS(buf){
-  try{
+
+// ══════════════════════════════════════
+// Exif解析
+// ══════════════════════════════════════
+function exifGPS(buf) {
+  try {
     var v=new DataView(buf);
-    if(v.getUint16(0)!==0xFFD8)return null;
+    if(v.getUint16(0)!==0xFFD8) return null;
     var o=2;
     while(o<v.byteLength-4){
       var mk=v.getUint16(o),ln=v.getUint16(o+2);
       if(mk===0xFFE1){
-        var hd=String.fromCharCode.apply(null,new Uint8Array(buf,o+4,6));
-        if(hd.startsWith("Exif")){
-          var tf=o+10,le=v.getUint16(tf)===0x4949;
-          var i0=v.getUint32(tf+4,le),n=v.getUint16(tf+i0,le),goff=null;
-          for(var i=0;i<n;i++){var e=tf+i0+2+i*12;if(v.getUint16(e,le)===0x8825)goff=v.getUint32(e+8,le);}
-          if(goff===null)return null;
-          var gn=v.getUint16(tf+goff,le),lR,lD,nR,nD;
+        var hd=""; for(var x=0;x<6;x++) hd+=String.fromCharCode(new Uint8Array(buf,o+4,6)[x]);
+        if(hd.indexOf("Exif")===0){
+          var tf=o+10, le=v.getUint16(tf)===0x4949;
+          var i0=v.getUint32(tf+4,le), n=v.getUint16(tf+i0,le), goff=null;
+          for(var i=0;i<n;i++){ var e=tf+i0+2+i*12; if(v.getUint16(e,le)===0x8825) goff=v.getUint32(e+8,le); }
+          if(goff===null) return null;
+          var gn=v.getUint16(tf+goff,le), lR="N",nR="E",lD=null,nD=null;
           for(var i=0;i<gn;i++){
-            var e=tf+goff+2+i*12,tag=v.getUint16(e,le),vo=v.getUint32(e+8,le);
-            var dms=function(vo2){return [0,1,2].map(function(j){var a=v.getUint32(tf+vo2+j*8,le),b=v.getUint32(tf+vo2+j*8+4,le);return b?a/b:0;});};
-            if(tag===1)lR=String.fromCharCode(new Uint8Array(buf,tf+vo,1)[0]);
-            if(tag===3)nR=String.fromCharCode(new Uint8Array(buf,tf+vo,1)[0]);
-            if(tag===2)lD=dms(vo);
-            if(tag===4)nD=dms(vo);
+            var e=tf+goff+2+i*12, tag=v.getUint16(e,le), vo=v.getUint32(e+8,le);
+            if(tag===1) lR=String.fromCharCode(new Uint8Array(buf,tf+vo,1)[0]);
+            if(tag===3) nR=String.fromCharCode(new Uint8Array(buf,tf+vo,1)[0]);
+            if(tag===2){lD=[];for(var j=0;j<3;j++){var a=v.getUint32(tf+vo+j*8,le),b=v.getUint32(tf+vo+j*8+4,le);lD.push(b?a/b:0);}}
+            if(tag===4){nD=[];for(var j=0;j<3;j++){var a=v.getUint32(tf+vo+j*8,le),b=v.getUint32(tf+vo+j*8+4,le);nD.push(b?a/b:0);}}
           }
-          if(!lD||!nD)return null;
-          var lat=lD[0]+lD[1]/60+lD[2]/3600,lng=nD[0]+nD[1]/60+nD[2]/3600;
-          if(lR==="S")lat=-lat;if(nR==="W")lng=-lng;
-          if(isNaN(lat)||lat===0)return null;
+          if(!lD||!nD) return null;
+          var lat=lD[0]+lD[1]/60+lD[2]/3600, lng=nD[0]+nD[1]/60+nD[2]/3600;
+          if(lR==="S") lat=-lat; if(nR==="W") lng=-lng;
+          if(isNaN(lat)||lat===0) return null;
           return {lat:lat,lng:lng};
         }
       }
-      if(ln<2)break;o+=2+ln;
+      if(ln<2) break; o+=2+ln;
     }
-  }catch(e){}
+  } catch(e){}
   return null;
 }
-function exifDate(buf){
-  try{
+function exifDate(buf) {
+  try {
     var v=new DataView(buf);
-    if(v.getUint16(0)!==0xFFD8)return null;
+    if(v.getUint16(0)!==0xFFD8) return null;
     var o=2;
     while(o<v.byteLength-4){
       var mk=v.getUint16(o),ln=v.getUint16(o+2);
       if(mk===0xFFE1){
-        var hd=String.fromCharCode.apply(null,new Uint8Array(buf,o+4,6));
-        if(hd.startsWith("Exif")){
-          var tf=o+10,le=v.getUint16(tf)===0x4949;
-          var i0=v.getUint32(tf+4,le),n=v.getUint16(tf+i0,le);
+        var hd=""; for(var x=0;x<6;x++) hd+=String.fromCharCode(new Uint8Array(buf,o+4,6)[x]);
+        if(hd.indexOf("Exif")===0){
+          var tf=o+10, le=v.getUint16(tf)===0x4949;
+          var i0=v.getUint32(tf+4,le), n=v.getUint16(tf+i0,le);
           for(var i=0;i<n;i++){
-            var e=tf+i0+2+i*12,tag=v.getUint16(e,le);
+            var e=tf+i0+2+i*12, tag=v.getUint16(e,le);
             if(tag===0x9003||tag===0x0132){
-              var vo=v.getUint32(e+8,le);
-              var ds=String.fromCharCode.apply(null,new Uint8Array(buf,tf+vo,19));
+              var vo=v.getUint32(e+8,le), arr=new Uint8Array(buf,tf+vo,19), ds="";
+              for(var x=0;x<19;x++) ds+=String.fromCharCode(arr[x]);
               return ds.split(" ")[0].replace(/:/g,"-");
             }
           }
         }
       }
-      if(ln<2)break;o+=2+ln;
+      if(ln<2) break; o+=2+ln;
     }
-  }catch(e){}
+  } catch(e){}
   return null;
 }
-async function identify(b64,mime){
-  var url="https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key="+GK;
-  var res=await fetch(url,{
-    method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({
-      contents:[{parts:[
-        {inline_data:{mime_type:mime,data:b64}},
-        {text:"この写真に写っている生き物・植物を識別してください。必ずJSON形式のみで返答し、マークダウン記法は使わないでください。形式: {\"name\":\"種名（例：カンパニュラ、ソメイヨシノ、カワセミ）\",\"category\":\"植物 or 動物 or 鳥 or 昆虫 or 魚 or その他\",\"memo\":\"特徴や見分け方など一言（40文字以内）\"} 種名が特定できない場合は「○○の仲間」と記載。生物がいない場合はname「不明」。"}
-      ]}],
-      generationConfig:{temperature:0.1,maxOutputTokens:300}
-    })
+
+// ══════════════════════════════════════
+// Gemini識別（Apps Script経由でCORSを回避）
+// ══════════════════════════════════════
+function identify(b64, mime, cb) {
+  var body = JSON.stringify({
+    contents:[{parts:[
+      {inline_data:{mime_type:mime, data:b64}},
+      {text:"この写真に写っている生き物・植物を識別してください。必ずJSON形式のみで返答し、マークダウン記法は一切使わないでください。形式:{\"name\":\"種名\",\"category\":\"植物 or 動物 or 鳥 or 昆虫 or 魚 or その他\",\"memo\":\"特徴一言40文字以内\"} 種名特定不可なら「○○の仲間」。生物なしはname「不明」。"}
+    ]}],
+    generationConfig:{temperature:0.1,maxOutputTokens:256}
   });
-  if(!res.ok)throw new Error("Gemini "+res.status);
-  var d=await res.json();
-  var txt=(d.candidates&&d.candidates[0]&&d.candidates[0].content&&d.candidates[0].content.parts&&d.candidates[0].content.parts[0]&&d.candidates[0].content.parts[0].text)||"{}";
-  return JSON.parse(txt.replace(/```json|```/g,"").trim());
+
+  // fetch APIを使用（Apps ScriptはCORSヘッダーを返すので問題なし）
+  fetch(PROXY, {
+    method:"POST",
+    headers:{"Content-Type":"text/plain"}, // Apps ScriptはContent-Type:text/plainで受け取る
+    body: body
+  })
+  .then(function(res){ return res.text(); })
+  .then(function(text){
+    try {
+      var d = JSON.parse(text);
+      // Geminiのレスポンス構造から取り出す
+      var raw = (d.candidates&&d.candidates[0]&&d.candidates[0].content&&
+                 d.candidates[0].content.parts&&d.candidates[0].content.parts[0]&&
+                 d.candidates[0].content.parts[0].text) || "{}";
+      var clean = raw.replace(/```json/g,"").replace(/```/g,"").trim();
+      cb(null, JSON.parse(clean));
+    } catch(e){ cb(e,null); }
+  })
+  .catch(function(err){ cb(err,null); });
 }
-document.getElementById("fi").addEventListener("change",async function(e){
-  var file=e.target.files[0];if(!file)return;
+
+// ══════════════════════════════════════
+// 写真アップロード → 識別 → 保存
+// ══════════════════════════════════════
+document.getElementById("fi").addEventListener("change", function(e) {
+  var file=e.target.files[0]; if(!file) return;
   e.target.value="";
   document.getElementById("ov").classList.add("on");
   document.getElementById("fab").classList.add("ld");
   document.getElementById("fab").textContent="⏳";
-  try{
-    var b64=await new Promise(function(res,rej){
-      var r=new FileReader();
-      r.onload=function(){res(r.result.split(",")[1]);};
-      r.onerror=rej;r.readAsDataURL(file);
+
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    var dataUrl=ev.target.result;
+    var b64=dataUrl.split(",")[1];
+    var mime=file.type||"image/jpeg";
+
+    file.arrayBuffer().then(function(buf){
+      var eDate=exifDate(buf);
+      var eGPS=exifGPS(buf);
+      var date=eDate||new Date().toISOString().slice(0,10);
+
+      function proceed(lat,lng,gpsSrc){
+        compressPhoto(dataUrl,function(thumb){
+          identify(b64,mime,function(err,result){
+            var name="不明",category="その他",memo="";
+            if(!err&&result){
+              name=result.name||"不明";
+              category=result.category||"その他";
+              memo=result.memo||"";
+            } else {
+              console.error("識別エラー:",err);
+              toast("AI識別失敗。✏️編集で名前を入力してください","warn");
+            }
+            var en={id:Date.now().toString(),name:name,category:category,date:date,memo:memo,photoUrl:thumb,lat:lat,lng:lng,gpsSrc:gpsSrc,ai:true};
+            entries.unshift(en);
+            save(); render();
+            var gMsg=gpsSrc==="photo"?"📍写真GPS取得":gpsSrc==="current"?"📍現在地を使用":"📍マップで位置を調整してください";
+            toast("✅「"+name+"」を登録！ "+gMsg);
+            document.getElementById("ov").classList.remove("on");
+            document.getElementById("fab").classList.remove("ld");
+            document.getElementById("fab").textContent="📷";
+            switchTab("map");
+            if(gmap&&lat&&lng){gmap.setCenter({lat:lat,lng:lng});gmap.setZoom(17);}
+          });
+        });
+      }
+
+      if(eGPS){
+        proceed(eGPS.lat,eGPS.lng,"photo");
+      } else {
+        if(navigator.geolocation){
+          navigator.geolocation.getCurrentPosition(
+            function(pos){proceed(pos.coords.latitude,pos.coords.longitude,"current");},
+            function(){proceed(35.7024,139.5775,"default");},
+            {timeout:5000,enableHighAccuracy:true}
+          );
+        } else { proceed(35.7024,139.5775,"default"); }
+      }
+    }).catch(function(err){
+      console.error(err);
+      document.getElementById("ov").classList.remove("on");
+      document.getElementById("fab").classList.remove("ld");
+      document.getElementById("fab").textContent="📷";
+      toast("エラーが発生しました","err");
     });
-    var photoUrl="data:"+file.type+";base64,"+b64;
-    var buf=await file.arrayBuffer();
-    var eD=exifDate(buf),eG=exifGPS(buf);
-    var date=eD||new Date().toISOString().slice(0,10);
-    var lat=null,lng=null,gpsSrc="";
-    if(eG){lat=eG.lat;lng=eG.lng;gpsSrc="photo";}
-    else{
-      try{
-        var pos=await new Promise(function(res,rej){navigator.geolocation.getCurrentPosition(res,rej,{timeout:5000,enableHighAccuracy:true});});
-        lat=pos.coords.latitude;lng=pos.coords.longitude;gpsSrc="current";
-      }catch(_){lat=35.7024;lng=139.5775;gpsSrc="default";}
-    }
-    var name="不明",category="その他",memo="";
-    try{
-      var r=await identify(b64,file.type||"image/jpeg");
-      name=r.name||"不明";category=r.category||"その他";memo=r.memo||"";
-    }catch(err){console.error("Gemini error:",err);toast("AI識別失敗。手動で名前を入力してください","warn");}
-    var en={id:Date.now().toString(),name:name,category:category,date:date,memo:memo,photoUrl:photoUrl,lat:lat,lng:lng,gpsSrc:gpsSrc,ai:true};
-    entries.unshift(en);save();render();
-    var gMsg=gpsSrc==="photo"?"📍 写真のGPS情報を使用":gpsSrc==="current"?"📍 現在地を使用":"📍 マップで位置を調整してください";
-    toast("✅ 「"+name+"」を登録！ "+gMsg);
-    switchTab("map");
-    if(gmap){gmap.setCenter({lat:lat,lng:lng});gmap.setZoom(17);}
-  }catch(err){console.error(err);toast("エラーが発生しました","err");}
-  finally{
-    document.getElementById("ov").classList.remove("on");
-    document.getElementById("fab").classList.remove("ld");
-    document.getElementById("fab").textContent="📷";
-  }
+  };
+  reader.readAsDataURL(file);
 });
-async function addManual(lat,lng){
+
+// ══════════════════════════════════════
+// 手動追加・フィルター・レンダリング
+// ══════════════════════════════════════
+function addManual(lat,lng){
   var en={id:Date.now().toString(),name:"名称未設定",category:"その他",date:new Date().toISOString().slice(0,10),memo:"",photoUrl:"",lat:lat,lng:lng,gpsSrc:"manual",ai:false};
-  entries.unshift(en);save();render();selE=en;openEdit();
+  entries.unshift(en); save(); render(); selE=en; openEdit();
 }
-function filtered(){return entries.filter(function(e){return curS==="all"||getSeason(e.date)===curS;});}
+function filtered(){ return entries.filter(function(e){return curS==="all"||getSeason(e.date)===curS;}); }
 function render(){
   document.getElementById("cnum").textContent=entries.length;
-  buildSBar();buildList(filtered());refreshMarkers();
+  buildSBar(); buildList(filtered()); refreshMarkers();
 }
 function buildList(list){
   var el=document.getElementById("elist");
-  if(!list.length){
-    el.innerHTML='<div class="empty"><div class="ei">🌱</div><div class="et">まだ記録がありません</div><div class="ed">📷ボタンから写真フォルダの写真を追加しよう</div></div>';
-    return;
-  }
-  el.innerHTML=list.map(function(e){
-    var s=getSInfo(e.date);
-    return '<div class="card" onclick="openDM(\''+e.id+'\')">'+
+  if(!list.length){el.innerHTML='<div class="empty"><div class="ei">🌱</div><div class="et">まだ記録がありません</div><div class="ed">📷ボタンから写真を追加しよう</div></div>';return;}
+  var h="";
+  for(var i=0;i<list.length;i++){
+    var e=list[i],s=getSInfo(e.date);
+    h+='<div class="card" onclick="openDM(\''+e.id+'\')">'+
       (e.photoUrl?'<img class="ci" src="'+e.photoUrl+'" alt="'+e.name+'"/>'
         :'<div class="cp">'+(ICON[e.category]||"📍")+'</div>')+
       '<div class="cb">'+
@@ -378,13 +480,18 @@ function buildList(list){
         '<div class="cd">📅 '+e.date+'</div>'+
         (e.memo?'<div class="cm">'+e.memo+'</div>':"")+
       '</div></div>';
-  }).join("");
+  }
+  el.innerHTML=h;
 }
+
+// ══════════════════════════════════════
+// 詳細・編集・削除
+// ══════════════════════════════════════
 function openDM(id){
-  selE=entries.find(function(e){return e.id===id;});if(!selE)return;
+  for(var i=0;i<entries.length;i++){if(entries[i].id===id){selE=entries[i];break;}}
+  if(!selE) return;
   var e=selE,s=getSInfo(e.date);
-  document.getElementById("dphoto").innerHTML=e.photoUrl
-    ?'<img class="mp" src="'+e.photoUrl+'" alt="'+e.name+'"/>'
+  document.getElementById("dphoto").innerHTML=e.photoUrl?'<img class="mp" src="'+e.photoUrl+'" alt="'+e.name+'"/>'
     :'<div class="mpp">'+(ICON[e.category]||"📍")+'</div>';
   document.getElementById("dname").textContent=e.name;
   document.getElementById("dtags").innerHTML=
@@ -394,42 +501,37 @@ function openDM(id){
   document.getElementById("ddate").textContent="📅 "+e.date;
   var mm=document.getElementById("dmemo");
   if(e.memo){mm.textContent=e.memo;mm.style.display="block";}else mm.style.display="none";
-  var ll=e.lat?"📍 "+e.lat.toFixed(5)+", "+e.lng.toFixed(5)+(e.gpsSrc==="default"?" (位置未取得・マップで調整)":e.gpsSrc==="current"?" (現在地)":e.gpsSrc==="photo"?" (写真GPS)":""):"";
-  document.getElementById("dloc").textContent=ll;
+  document.getElementById("dloc").textContent=e.lat?"📍 "+e.lat.toFixed(5)+", "+e.lng.toFixed(5)+(e.gpsSrc==="photo"?" (写真GPS)":e.gpsSrc==="current"?" (現在地)":e.gpsSrc==="default"?" (位置要調整)":""):"";
   document.getElementById("dm").classList.add("on");
 }
 function closeDMBg(ev){if(ev.target===document.getElementById("dm"))closeDM();}
 function closeDM(){document.getElementById("dm").classList.remove("on");if(iw)iw.close();}
 function delEntry(){
-  if(!selE)return;
-  entries=entries.filter(function(e){return e.id!==selE.id;});
-  save();closeDM();selE=null;render();
-  toast("🗑️ 削除しました","warn");
+  if(!selE) return;
+  var a=[];for(var i=0;i<entries.length;i++){if(entries[i].id!==selE.id)a.push(entries[i]);}
+  entries=a; save(); closeDM(); selE=null; render(); toast("🗑️ 削除しました","warn");
 }
 function openEdit(){
-  if(!selE)return;
+  if(!selE) return;
   document.getElementById("ename").value=selE.name;
   document.getElementById("edate").value=selE.date;
   document.getElementById("ememo").value=selE.memo||"";
-  document.getElementById("ecats").innerHTML=CATS.map(function(c){
-    return '<button class="cb2 '+(selE.category===c?'on':'')+'" onclick="selCat(this,\''+c+'\')">'+ICON[c]+" "+c+'</button>';
-  }).join("");
-  closeDM();
-  document.getElementById("em").classList.add("on");
+  var h="";for(var i=0;i<CATS.length;i++){var c=CATS[i];h+='<button class="cb2 '+(selE.category===c?"on":"")+'" onclick="selCat(this,\''+c+'\')">'+ICON[c]+" "+c+'</button>';}
+  document.getElementById("ecats").innerHTML=h;
+  closeDM(); document.getElementById("em").classList.add("on");
 }
 function selCat(btn,cat){
-  document.querySelectorAll(".cb2").forEach(function(b){b.classList.remove("on");});
+  var bs=document.querySelectorAll(".cb2");for(var i=0;i<bs.length;i++)bs[i].classList.remove("on");
   btn.classList.add("on");if(selE)selE.category=cat;
 }
 function closeEdit(){document.getElementById("em").classList.remove("on");}
 function saveEdit(){
-  if(!selE)return;
+  if(!selE) return;
   selE.name=document.getElementById("ename").value||"名称未設定";
   selE.date=document.getElementById("edate").value;
   selE.memo=document.getElementById("ememo").value;
-  var i=entries.findIndex(function(e){return e.id===selE.id;});
-  if(i>=0)entries[i]=Object.assign({},selE);
-  save();closeEdit();render();toast("💾 保存しました");
+  for(var i=0;i<entries.length;i++){if(entries[i].id===selE.id){entries[i]=JSON.parse(JSON.stringify(selE));break;}}
+  save(); closeEdit(); render(); toast("💾 保存しました");
 }
 function toast(msg,type){
   type=type||"ok";
@@ -438,14 +540,11 @@ function toast(msg,type){
   t.style.background=type==="err"?"#fee2e2":type==="warn"?"#fff7ed":"#f0fdf4";
   t.style.color=type==="err"?"#dc2626":type==="warn"?"#ea580c":"#16a34a";
   t.style.border="1.5px solid "+(type==="err"?"#fca5a5":type==="warn"?"#fed7aa":"#bbf7d0");
-  t.classList.add("on");
-  setTimeout(function(){t.classList.remove("on");},3500);
+  t.classList.add("on"); setTimeout(function(){t.classList.remove("on");},3500);
 }
-if("serviceWorker"in navigator){
-  navigator.serviceWorker.register("sw.js").catch(function(e){console.log("SW:",e);});
-}
-load();render();
+
+load(); render();
 </script>
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDX9CyJmylG8WlkbEzJHz5daCPqw79ro1Y&language=ja&region=JP" async defer></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDX9CyJmylG8WlkbEzJHz5daCPqw79ro1Y&language=ja&region=JP&callback=onMapsLoaded" async defer></script>
 </body>
 </html>
